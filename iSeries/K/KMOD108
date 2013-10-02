@@ -1,0 +1,206 @@
+* =======================================================
+* Company .........: Visa Card Services
+* Naam proces .....: KMOD1
+* Naam functie ....: KMOD108
+* Titel/doel.......: QAS: Postcode check - nieuwe versie
+* Creatiedatum ....: 12/11/09
+* Creatietijd .....: 09:30:36
+* Programmeur .....: John Visscher
+* LANSA release ...: 11.0
+* =======================================================
+* Bedrijf .........: Sogeti Nederland B.V.
+* Auteur ..........: ODJBOY  Yvonne de Boer
+* Datum/Tijd ......: 11/7/12 11:35:43
+* Aanpassing ......: Rel 12.7 CR8230 Toevoegen testmodus
+*                    en -postcode voor testen BKR-toet-
+*                    sing.
+* =======================================================
+* Parameters voor KMOD108:
+* INVOER:
+* #EX_QASPC   : Postcode
+* #EX_QASHN   : Huisnummer
+* #EX_QASHE   : Huisnummer extensie
+* #EX_SRCST   : Straat (Zoeken op Straatnaam)
+* UITVOER:
+* #EX_QASPC   : Postcode
+* #EX_QASHN   : Huisnummer
+* #EX_QASHE   : Huisnummer extensie
+* #EX_QASST   : Straat
+* #EX_QASWP   : Woonplaats
+* #EX_QASLC   : Landcode
+* #EX_RETCD   : Returncode
+* =======================================================
+
+* Wijziging ivm RfC31005275
+* Geen bericht als aangestuurd vanuit Cobrander interface
+
+* =======================================================
+
+Function Options(*DIRECT *DEFERWRITE *MLOPTIMISE)
+* =======================================================
+* Tag: Defines
+* =======================================================
+
+Define Field(#OV_PSTSPA) Type(*CHAR) Length(1) To_Overlay(#W_A07 5)
+Define Field(#OV_PSTNUM) Type(*CHAR) Length(4) To_Overlay(#W_A07)
+Define Field(#OV_PSTEXT) Type(*CHAR) Length(2) To_Overlay(#W_A07 5)
+Define Field(#W_INDTEST) Type(*CHAR) Length(1)
+Define Field(#W_TESTPC) Type(*CHAR) Length(6)
+
+Def_Cond Name(*ERROR) Cond('(#EX_RETCD *EQ 1) *OR (#EX_QASRSL *EQ ER) *OR (#EX_QASRSL *EQ NP) *OR (#EX_QASRSL *EQ MA)')
+Def_Cond Name(*EXTRA) Cond('(#W_A100 *NE *BLANKS) *OR (#EX_QASRSL *EQ ER) *OR (#EX_QASRSL *EQ MA)')
+Def_Cond Name(*NMSGNP) Cond('(#PARVA1 *EQ Y) *AND (#EX_FNCTN *EQ KMOD124)')
+Def_Cond Name(*NMSGMA) Cond('(#PARVA1 *EQ Y) *AND (#EX_FNCTN *EQ KMOD124) *OR (#PARVA1 *EQ MA) *AND (#EX_FNCTN *EQ KMOD124)')
+* =======================================================
+* Mainline
+* =======================================================
+
+Execute Subroutine(INIT)
+* Verwerking als de postcode geen BKR testpostcode is.
+
+* Aanroepen QAS met huisnummer en als aanwezig huisnummer extensie
+Use Builtin(NUMERIC_STRING) With_Args(#EX_QASHN) To_Get(#W_A16)
+
+If_Null Field(#EX_QASHE)
+Else
+Use Builtin(TCONCAT) With_Args(#W_A16 '-' #EX_QASHE) To_Get(#W_A16)
+Endif
+
+Execute Subroutine(QAS) With_Parms(#W_A16)
+
+* Aanroepen QAS ingeval meerdere entries
+If Cond(*EXTRA)
+Execute Subroutine(QAS) With_Parms(*BLANKS)
+Endif
+
+
+* velden testen
+If Cond(*ERROR)
+Else
+* Test op opgehaalde postcode, als afwijkend
+* dan afkeuren
+* Eerst opmaak uniform maken
+Change Field(#W_A07) To(#ADRES3)
+If Cond('#OV_PSTSPA *NE '' ''')
+Change Field(#W_A07B) To(#OV_PSTNUM)
+Substring Field(#OV_PSTEXT) Into_Field(#W_A07B 6)
+Else
+Change Field(#W_A07B) To(#ADRES3)
+Endif
+
+Change Field(#W_A07) To(#EX_QASPC)
+If Cond('#OV_PSTSPA *NE '' ''')
+Change Field(#W_A07A) To(#OV_PSTNUM)
+Substring Field(#OV_PSTEXT) Into_Field(#W_A07A 6)
+Else
+Change Field(#W_A07A) To(#EX_QASPC)
+Endif
+
+* dan vergelijken
+If Cond('(#W_A07A *NE #W_A07B)')
+Change Field(#EX_QASRSL) To(NP)
+Endif
+
+* Adres1 leeg, dan NP
+
+If Cond('#ADRES1 *EQ *BLANKS')
+Change Field(#EX_QASRSL) To(NP)
+Endif
+Endif
+
+* velden vullen
+If Cond(*ERROR)
+Change Field(#EX_QASST #EX_QASWP #EX_QASLC) To(*NULL)
+Else
+
+Change Field(#EX_QASST) To(#ADRES1)
+Change Field(#EX_QASWP) To(#ADRES2)
+Change Field(#EX_QASLC) To(#ADRES5)
+Endif
+
+
+* Berichten tonen / error return code bepalen
+Case Of_Field(#EX_QASRSL)
+When Value_Is('= ER')
+Message Msgid(PCA0006) Msgf(CVSMSGFDUT) Msgdta(#W_A75)
+Change Field(#EX_RETCD) To(1)
+When Value_Is('= NP')
+Change Field(#EX_QASST #EX_QASWP #EX_QASLC) To(*NULL)
+If Cond(*NMSGNP)
+Else
+If Cond('#EX_FNCTN *NE ''KMOD360''')
+Message Msgid(PCA0001) Msgf(CVSMSGFDUT) Msgdta(#W_A75)
+Endif
+Change Field(#EX_RETCD) To(1)
+Endif
+When Value_Is('= NC')
+If Cond('#EX_FNCTN *NE ''KMOD360''')
+Message Msgid(PCA0003) Msgf(CVSMSGFDUT) Msgdta(#W_A75)
+Endif
+If Cond('#EX_FNCTN *NE ''KMOD124''')
+Change Field(#EX_RETCD) To(1)
+Endif
+When Value_Is('= MA')
+Change Field(#EX_QASST #EX_QASWP #EX_QASLC) To(*NULL)
+If Cond(*NMSGMA)
+Else
+If Cond('#EX_FNCTN *NE ''KMOD360''')
+Message Msgid(PCA0007) Msgf(CVSMSGFDUT) Msgdta(#W_A75)
+Endif
+Change Field(#EX_RETCD) To(1)
+Endif
+Endcase
+* testpostcode BKR
+If Cond('#EX_QASPC *EQ #W_TESTPC')
+Change Field(#EX_RETCD) To(0)
+Endif
+
+
+
+* Ook EX_ABUSTR, EX_ABUWPL, EX_AABSTR en EX_AABWPL terug
+* geven i.v.m. werking oude programmatuur
+Change Field(#EX_ABUSTR #EX_AABSTR) To(#EX_QASST)
+Change Field(#EX_ABUWPL #EX_AABWPL) To(#EX_QASWP)
+Exchange Fields(#EX_RETCD #EX_QASST #EX_QASWP #EX_QASLC #EX_ABUSTR #EX_AABSTR #EX_ABUWPL #EX_AABWPL #EX_QASRSL)
+
+Return
+* =======================================================
+* Aanroep QAS
+* =======================================================
+Subroutine Name(QAS) Parms(#W_A16)
+
+Call Pgm(PWW_CHECK) Parm(#W_A03 #EX_QASPC #W_A16 #EX_SRCST #ADRES1 #ADRES2 #ADRES3 #ADRES4 #ADRES5 #W_A100 #EX_QASRSL #W_A75)
+
+* Is module aangeroepen
+If Cond('#EX_QASRSL *NE ''  ''')
+Change Field(#EX_RETCD) To(0)
+Endif
+Endroutine
+* =======================================================
+* Initialisatie programma
+* =======================================================
+Subroutine Name(INIT)
+Change Field(#W_A03) To(*DTA161003PARTITIE)
+
+* parameters
+Change Field(#EX_RETCD) To(1)
+Change Field(#W_A75 #W_A66B #W_A66A #W_A09 #EX_QASRSL #W_A100) To(*NULL)
+Use Builtin(UPPERCASE) With_Args(#EX_QASPC) To_Get(#EX_QASPC)
+* Ophalen eventuele testmodus en testpostcode BKR
+Fetch Fields(#PARVA1) From_File(PARTAB) With_Key(*FUNCTION 1) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+Change Field(#PARVA1) To(*BLANKS)
+Else
+Change Field(#W_INDTEST) To(#PARVA1)
+If Cond('#W_INDTEST *EQ T')
+Fetch Fields(#PARVA1) From_File(PARTAB) With_Key(*FUNCTION 2) Io_Error(*NEXT) Val_Error(*NEXT)
+Change Field(#W_TESTPC) To(#PARVA1)
+Else
+Change Field(#W_INDTEST) To(*BLANKS)
+Change Field(#W_TESTPC) To(*BLANKS)
+Endif
+Endif
+Change Field(#PARVA1) To(*BLANKS)
+* Aansturing PWW_ADRES ingeval van geen resultaat, bericht dan onderdrukken
+Fetch Fields(#PARVA1) From_File(PARTAB) With_Key(KMOD124 1) Io_Error(*NEXT)
+Endroutine

@@ -1,0 +1,83 @@
+Function Options(*DIRECT) Rcv_List(#WL_JSMST1 #WL_JSMST2 #WL_JSMST3 #WL_REQ #WL_RSP1 #WL_RSP2 #WL_CONN)
+
+Def_List Name(#WL_REQ) Fields(#IPKIPN #KRKNTN #KTKRTN #DOSSIER #AMTDEC #ORIGIN #USER #TRASTA #JSMCORID) Type(*WORKING) Entrys(1)
+
+* Def_List Name(#WL_REQ) Fields(#IPKIPN #KRKNTN #KTKRTN #DOSSIER #AMTDEC #ORIGIN #USER #TRASTA #JSMCORID #DOSREF) Type(*WORKING) Entrys(1)
+Def_List Name(#WL_RSP1) Fields(#ERRORCODE) Type(*WORKING) Entrys(1)
+Def_List Name(#WL_RSP2) Fields(#REASON) Type(*WORKING) Entrys(1)
+Def_List Name(#WL_CONN) Fields(#STD_A30B #STD_ALPHA #STD_A50 #STD_A50A #STD_A50B) Type(*WORKING) Entrys(1)
+Def_List Name(#WL_DOSREF) Fields(#DOSREF) Type(*WORKING) Entrys(1)
+
+* =======================================================
+* M A I N   L I N E
+* =======================================================
+Include Process(*DIRECT) Function(CMLI019)
+* Get extra data ....
+* Get_Entry Number(1) From_List(#WL_DOSREF)
+* Bind service request
+If Cond('#STD_ALPHA = Y')
+Change Field(#JSMCMD) To('BIND SERVICE(CREATEDOSSIER_REQUEST) BINDTRACE(*YES) TYPE(*OUTBOUND)')
+Else
+Change Field(#JSMCMD) To('BIND SERVICE(CREATEDOSSIER_REQUEST) TYPE(*OUTBOUND)')
+Endif
+Use Builtin(JSM_COMMAND) With_Args(#JSMCMD) To_Get(#JSMSTS #JSMMSG)
+Execute Subroutine(CHECK) With_Parms(#JSMSTS #JSMMSG)
+* Set root fragment
+Change Field(#REQTYP) To('''createDossier_request''')
+Change Field(#JSMCMD) To('SET FRAGMENT(LANSAREQUEST) SERVICE_EXCHANGE(*FIELD)')
+Use Builtin(JSM_COMMAND) With_Args(#JSMCMD) To_Get(#JSMSTS #JSMMSG)
+Execute Subroutine(CHECK) With_Parms(#JSMSTS #JSMMSG)
+* Set root fragment
+Change Field(#JSMCMD) To('SET FRAGMENT(REQUESTMESSAGE) SERVICE_EXCHANGE(*FIELD)')
+Use Builtin(JSM_COMMAND) With_Args(#JSMCMD) To_Get(#JSMSTS #JSMMSG)
+Execute Subroutine(CHECK) With_Parms(#JSMSTS #JSMMSG)
+* Set root fragment
+Change Field(#JSMCMD) To('SET FRAGMENT(CREATEDOSSIERREQUEST) SERVICE_EXCHANGE(*FIELD)')
+Use Builtin(JSM_COMMAND) With_Args(#JSMCMD) To_Get(#JSMSTS #JSMMSG)
+Execute Subroutine(CHECK) With_Parms(#JSMSTS #JSMMSG)
+* Write XML message
+Change Field(#JSMCMD) To('WRITE INDENT(*YES)')
+Use Builtin(JSM_COMMAND) With_Args(#JSMCMD) To_Get(#JSMSTS #JSMMSG)
+Execute Subroutine(CHECK) With_Parms(#JSMSTS #JSMMSG)
+Include Process(*DIRECT) Function(CMLI021)
+If Cond('#JSMSTS *NE MQR2033')
+Execute Subroutine(CHECK) With_Parms(#JSMSTS #JSMMSG)
+* Bind service
+If Cond('#STD_ALPHA = Y')
+Change Field(#JSMCMD) To('BIND SERVICE(CREATEDOSSIER_RESPONSE) BINDTRACE(*YES) TYPE(*INBOUND)')
+Else
+Change Field(#JSMCMD) To('BIND SERVICE(CREATEDOSSIER_RESPONSE)  TYPE(*INBOUND)')
+Endif
+Use Builtin(JSM_COMMAND) With_Args(#JSMCMD) To_Get(#JSMSTS #JSMMSG)
+Execute Subroutine(CHECK) With_Parms(#JSMSTS #JSMMSG)
+* Get root fragment
+Change Field(#JSMCMD) To('GET FRAGMENT(LANSARESPONSE) SERVICE_EXCHANGE(*FIELD)')
+Use Builtin(JSM_COMMAND) With_Args(#JSMCMD) To_Get(#JSMSTS #JSMMSG)
+Execute Subroutine(CHECK) With_Parms(#JSMSTS #JSMMSG)
+* Get root fragment
+Change Field(#JSMCMD) To('GET FRAGMENT(RESPONSEMESSAGE) SERVICE_EXCHANGE(*FIELD)')
+Use Builtin(JSM_COMMAND) With_Args(#JSMCMD) To_Get(#JSMSTS #JSMMSG)
+Execute Subroutine(CHECK) With_Parms(#JSMSTS #JSMMSG)
+* Get root fragment
+Change Field(#JSMCMD) To('GET FRAGMENT(CREATEDOSSIERRESPONSE) SERVICE_EXCHANGE(*FIELD)')
+Use Builtin(JSM_COMMAND) With_Args(#JSMCMD) To_Get(#JSMSTS #JSMMSG)
+If Cond('#JSMSTS *EQ NOFRAGMENT')
+Change Field(#ERRORCODE) To(CMLI033)
+Change Field(#REASON) To('THE BACKEND SERVER DID NOT SEND A VALID RESPONSE. CONTACT HELPDESK')
+Else
+Execute Subroutine(CHECK) With_Parms(#JSMSTS #JSMMSG)
+
+* Get root fragment
+Change Field(#JSMCMD) To('GET FRAGMENT(RESPONSE) SERVICE_EXCHANGE(*FIELD)')
+Use Builtin(JSM_COMMAND) With_Args(#JSMCMD) To_Get(#JSMSTS #JSMMSG)
+Execute Subroutine(CHECK) With_Parms(#JSMSTS #JSMMSG)
+Endif
+Else
+Change Field(#ERRORCODE) To(BCKERR)
+Change Field(#REASON) To('THE BACKEND SERVER DID NOT SEND A RESPONSE. CONTACT HELPDESK')
+Endif
+* put response on list
+Add_Entry To_List(#WL_RSP1)
+Add_Entry To_List(#WL_RSP2)
+
+Include Process(*DIRECT) Function(CMLI020)

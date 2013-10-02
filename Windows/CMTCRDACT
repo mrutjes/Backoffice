@@ -1,0 +1,233 @@
+* ================================================================================
+* CMTCRDACT : Card Actions Panel.
+* ================================================================================
+* Wijzigings historie
+* ----------------------------------------------------------------------------------
+* Change   Ontwikkelaar  Wijziging
+* 31007781   HvdW        Nieuw component. Buttons card van scherm cardinfo afhalen. Herindelen scherm.
+* 31007425   FB          3D Secure button verwijderd.
+* 31009914   FB          Remark toevoegen;CMTDBLCRD gemaakt
+* ==================================================================================
+Function Options(*DIRECT)
+Begin_Com Role(*EXTENDS #CMTPNLCLS) Height(271) Width(324)
+* ================================================================================
+* Simple Field and Group Definitions
+* ================================================================================
+* Define_Com Class(#cmrcard) Name(#CardRecord) Scope(*APPLICATION) Reference(*DYNAMIC)
+* Working Lists
+Def_List Name(#wl_jsmst1) Fields(#jsmcmd) Type(*working) Entrys(9999)
+Def_List Name(#wl_jsmst2) Fields(#jsmsts) Counter(#std_count) Type(*working) Entrys(9999)
+Def_List Name(#wl_jsmst3) Fields(#jsmmsg) Type(*working) Entrys(9999)
+Def_List Name(#wl_rsp1) Fields(#ERRORCODE) Type(*working) Entrys(1)
+Def_List Name(#wl_rsp2) Fields(#REASON) Type(*working) Entrys(1)
+Def_List Name(#wl_conn) Fields(#std_a30b #std_alpha #std_a50 #std_a50a #std_a50b) Type(*Working) Entrys(1)
+Def_List Name(#wl_req) Fields(#KRKNTN #KTKRTN #TRASTA #JSMCORID) Type(*working) Entrys(1)
+* ================================================================================
+* Component definitions
+* ================================================================================
+* ================================================================================
+* SCREEN
+* ================================================================================
+Define_Com Class(*ANCESTOR) Name(#PNL_CAPTION) Displayposition(2) Tabposition(3) Width(324)
+Define_Com Class(*ANCESTOR) Name(#GPB_MAIN) Displayposition(3) Height(247) Layoutmanager(#ATLM_1) Tabposition(2) Width(324)
+Define_Com Class(#PRIM_TAB) Name(#TAB_1) Bottomlayoutpriority(4) Displayposition(1) Height(243) Left(2) Leftlayoutpriority(1) Parent(#COM_OWNER) Rightlayoutpriority(2) Tabposition(1) Top(26) Toplayoutpriority(3) Width(320)
+Define_Com Class(#PRIM_ATLI) Name(#ATLI_2) Attachment(Center) Manage(#TAB_1) Marginbottom(2) Marginleft(2) Marginright(2) Margintop(2) Parent(#ATLM_1)
+Define_Com Class(#cmtdblcrd) Name(#DeblockCard) Reference(*dynamic)
+* ================================================================================
+* Events Definitions
+* ================================================================================
+* ================================================================================
+* Property Definitions
+* ================================================================================
+* ================================================================================
+* Method Definitions
+* ================================================================================
+Mthroutine Name(mInitRetainPanel)
+Define_Map For(*input) Class(#JSMXHDLE) Name(#JSMHandle)
+
+#JSMXHDLE := #JSMHandle
+
+#COM_OWNER.mButtonsReference
+
+#COM_OWNER.mCreateSheet1( TBS_ACT1 'Actions' )
+
+#TAB_1.Realize
+Endroutine
+
+Mthroutine Name(mClearFields) Options(*REDEFINE)
+For Each(#pnl) In(#TAB_1.ComponentControls)
+If_Ref Com(#pnl) Is(*INSTANCE_OF #PRIM_TBSH)
+#Sheet <= (#pnl *As #PRIM_TBSH)
+For Each(#but) In(#Sheet.ComponentControls)
+If_Ref Com(#but) Is(*INSTANCE_OF #ICSBUTTON)
+#but.Unrealize
+* #but.Enabled := False
+Endif
+Endfor
+#pnl.Unrealize
+#Sheet.Unrealize
+#SHEET <= *Null
+Endif
+Endfor
+
+If_Ref Com(#BUTTON_COLLECTION) Is_Not(*null)
+#BUTTON_COLLECTION.RemoveAll
+#FLOWITEMCOLLECTION.RemoveAll
+Endif
+Endroutine
+
+Mthroutine Name(mCreateSheet1)
+Define_Map For(*INPUT) Class(#prim_ALPH) Name(#iActionSheet)
+Define_Map For(*INPUT) Class(#prim_ALPH) Name(#iCaption)
+
+Define_Com Class(#prim_alph) Name(#tmp_ButtonKey)
+
+#COM_OWNER.mCreateSheet( #iActionSheet #iCaption #TAB_1 )
+
+#Com_owner.pJSMHANDLE := #JSMXHDLE
+* #COM_OWNER.pCardRecord <= #CardRecord
+* Pin / Re-embos
+Set_Ref Com(#NextStep) To(*CREATE_AS #CMTREMBOS)
+#Com_owner.mDefineButton( 'PIN/Re-Emboss' @REPICR #NextStep #SHEET_COLLECTION<#iActionSheet> )
+
+* 3D secure
+* Set_Ref Com(#NextStep) To(*Null)
+* #Com_owner.mDefineButton( '3D Secure' @3DSECU #NextStep #SHEET_COLLECTION<#iActionSheet> CREATEDOSSIER )
+*
+* #BUTTON_COLLECTION<#ButtonKey>.pDossierID := '3DSECURE'
+* #BUTTON_COLLECTION<#ButtonKey>.pAmount := *SQLNULL
+* #BUTTON_COLLECTION<#ButtonKey>.pCardRecord <= #CARDRECORD
+* #BUTTON_COLLECTION<#ButtonKey>.pDossierOrigin := CMT
+* #BUTTON_COLLECTION<#ButtonKey>.pDossierUser := *USER
+* #BUTTON_COLLECTION<#ButtonKey>.pTransactionID := '3DSECURE'
+* #BUTTON_COLLECTION<#ButtonKey>.pVrijeReferentie := *Blanks
+* #BUTTON_COLLECTION<#ButtonKey>.pAskForConfirmation := True
+
+* Block Card
+* Set_Ref Com(#NextStep) To(*Null)
+* #Com_owner.mDefineButton( 'Deblock card' "@UNBCRD", #NextStep #SHEET_COLLECTION<#iActionSheet> )
+* #BUTTON_COLLECTION<#ButtonKey>.pAskForConfirmation := True
+
+* Block Card new style with optional remark
+Set_Ref Com(#NextStep) To(*CREATE_AS #CMTDBLCRD)
+#Com_owner.mDefineButton( 'Deblock card' "@UNBCRD", #NextStep #SHEET_COLLECTION<#iActionSheet> )
+
+* WebUtn
+Set_Ref Com(#NextStep) To(*CREATE_AS #CMTWEBUTN)
+#Com_owner.mDefineButton( 'Web UTN' @WEBUTN #NextStep #SHEET_COLLECTION<#iActionSheet> )
+
+* Request TIN
+Case (#COM_OWNER.MGetLanguage.pprefalphavalue1)
+When ('= BE')
+Set_Ref Com(#NextStep) To(*Null)
+#Com_owner.mDefineButton( 'Request TIN' @REQTIN #NextStep #SHEET_COLLECTION<#iActionSheet> CREATEDOSSIER )
+
+#BUTTON_COLLECTION<#ButtonKey>.pDossierID := REQTINPSL
+#BUTTON_COLLECTION<#ButtonKey>.pAmount := *SQLNULL
+#BUTTON_COLLECTION<#ButtonKey>.pCardRecord <= #CARDRECORD
+#BUTTON_COLLECTION<#ButtonKey>.pDossierOrigin := CMT
+#BUTTON_COLLECTION<#ButtonKey>.pDossierUser := *USER
+#BUTTON_COLLECTION<#ButtonKey>.pTransactionID := REQUESTTIN
+#BUTTON_COLLECTION<#ButtonKey>.pVrijeReferentie := *Blanks
+#BUTTON_COLLECTION<#ButtonKey>.pAskForConfirmation := True
+Endcase
+
+* Early replace
+#KTKRTN001 := #CardRecord.pCARDNR
+Exchange Fields(#JSMXHDLE #KTKRTN001)
+Call Process(*DIRECT) Function(CMLI050) If_Error(*NEXT)
+If (#STD_NUM > 0)
+Set_Ref Com(#NextStep) To(*Null)
+#Com_owner.mDefineButton( 'Early Replace' @REQRCE #NextStep #SHEET_COLLECTION<#iActionSheet> CREATEDOSSIER )
+
+#BUTTON_COLLECTION<#ButtonKey>.pDossierID := REQRCELSD
+#BUTTON_COLLECTION<#ButtonKey>.pAmount := *SQLNULL
+#BUTTON_COLLECTION<#ButtonKey>.pCardRecord <= #CARDRECORD
+#BUTTON_COLLECTION<#ButtonKey>.pDossierOrigin := CMT
+#BUTTON_COLLECTION<#ButtonKey>.pDossierUser := *USER
+#BUTTON_COLLECTION<#ButtonKey>.pTransactionID := REQUESTRCE
+#BUTTON_COLLECTION<#ButtonKey>.pVrijeReferentie := *Blanks
+#BUTTON_COLLECTION<#ButtonKey>.pAskForConfirmation := True
+Endif
+Endroutine
+* ================================================================================
+* Event Handlers
+* ================================================================================
+Evtroutine Handling(#COM_OWNER.Initialize) Options(*NOCLEARMESSAGES *NOCLEARERRORS)
+* set caption
+#com_owner.pCaption := "Card Actions"
+#GPB_MAIN.Visible := False
+* init component
+#COM_ANCESTOR.mInitialize
+Endroutine
+Evtroutine Handling(#COM_OWNER.eShowMessages)
+Signal Event(eShowMessages)
+Endroutine
+* There are components that are not member of the CM_FRMCLS. They have a special treatment. In time those components will also be handled totally dynamically.
+Evtroutine Handling(#BUTTON_COLLECTION<>.pbuttonclicked) Com_Sender(#sender)
+Case (#sender.pButtonName)
+* When ('= @UNBCRD')
+* * Clear Lists
+* Clr_List Named(#wl_jsmst1)
+* Clr_List Named(#wl_jsmst2)
+* Clr_List Named(#wl_jsmst3)
+* Clr_List Named(#wl_rsp1)
+* Clr_List Named(#wl_rsp2)
+*
+* * put data in list
+* #KRKNTN := #CustomerRecord.pAccountNumber
+* #KTKRTN := #CardRecord.pCARDNR
+* #JSMCORID := *USER + #KNKNTN.Now.AsDisplayString( Localized_SQL )
+* #TRASTA := "DEBLOCKCARDREQ" + #JSMCORID
+* Inz_List Named(#wl_req)
+*
+* * get integrator/MQ details from connection proxy
+* #std_a30b := #CONNPROXY.pLANSAIntegrator
+* #std_alpha := #CONNPROXY.pLANSAIntTrace
+* #std_a50 := #CONNPROXY.pMQManager
+* #std_a50a := #CONNPROXY.pMQPutQueue
+* #std_a50b := #CONNPROXY.pMQGetQueue
+* Inz_List Named(#wl_conn)
+*
+* Use Builtin(CALL_SERVER_FUNCTION) With_Args(*SSERVER_SSN CMLI032 *Default *Default #wl_jsmst1 #wl_jsmst2 #wl_jsmst3 #wl_req #wl_rsp1 #wl_rsp2 #wl_conn) To_Get(#io$sts)
+* If (#io$sts <> OK)
+* Message Msgtxt("Request failed")
+* Else
+* If (#std_count > 0)
+* #std_num := 1
+* Selectlist Named(#wl_jsmst1)
+* Get_Entry Number(#std_num) From_List(#wl_jsmst2)
+* Get_Entry Number(#std_num) From_List(#wl_jsmst3)
+* Message Msgtxt(#JSMCMD)
+* Message Msgtxt(#JSMSTS)
+* Message Msgtxt(#JSMMSG)
+* #std_num += 1
+* Endselect
+* Else
+* Get_Entry Number(1) From_List(#wl_rsp1)
+* Get_Entry Number(1) From_List(#wl_rsp2)
+* If (#errorcode <> *blanks)
+* Message Msgtxt(#errorcode + " : " + #reason)
+* Else
+* Message Msgtxt("Request is processed.")
+* #COM_OWNER.mWriteLogAction( #CustomerRecord.pAccountNumber #CardRecord.pCARDNR "Request" "Deblock card" *SQLNULL *SQLNULL *SQLNULL )
+* Endif
+*
+* Endif
+* Endif
+When ('= @UNBCRD')
+Set_Ref Com(#DeblockCard) To(*CREATE_AS #cmtdblcrd) Com_Error(*SET_NULL) Context(*NEW)
+If_Ref Com(#DeblockCard) Is_Not(*NULL)
+#DeblockCard.mInitForm( #CustomerRecord #CARDRECORD #JSMXHDLE )
+#DeblockCard <= *null
+Endif
+
+When ('= @REQRCE')
+#COM_OWNER.mWriteLogAction( #CustomerRecord.pAccountNumber #CardRecord.pCARDNR "Request" "Early Replace" *SQLNULL *SQLNULL *SQLNULL )
+When ('= @REQTIN')
+#COM_OWNER.mWriteLogAction( #CustomerRecord.pAccountNumber #CardRecord.pCARDNR "Request" "TIN" *SQLNULL *SQLNULL *SQLNULL )
+* When ('= @3DSECU')
+* #COM_OWNER.mWriteLogAction( #CustomerRecord.pAccountNumber #CardRecord.pCARDNR "Request" "3D secure" *SQLNULL ("card : " + #KTKRTN001.asString) *SQLNULL )
+Endcase
+Endroutine
+End_Com

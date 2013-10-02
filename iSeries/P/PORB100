@@ -1,0 +1,460 @@
+* =======================================================
+* ============= © VSB International B.V. ================
+* =======================================================
+* Naam proces .....: PORB1
+* Naam functie ....: PORB100
+* Titel ...........: Portal backend stuurprogramma
+* Doel ............: Afhandelen binnenkomende XML
+*                    berichten en aanroepen juiste
+*                    backend module.
+* Creatiedatum/tijd: 26/10/05 14:37:39
+* Bedrijf .........: Sogeti Nederland B.V.
+* Programmeur .....: ONMSTEEN   Marcel Steenstra
+* LANSA release ...: 10.0
+* =======================================================
+* Auteur ..........: ONMSTEEN   Marcel Steenstra
+* Datum/Tijd ......: 23/03/06 09:43:12
+* Aanpassing ......: Bij onbekende request foutcode
+*                    POR9999 in responsebericht.
+* =======================================================
+* Auteur ..........: ONMSTEEN   Marcel Steenstra
+* Datum/Tijd ......: 21/02/07 15:31:44
+* Aanpassing ......: Foutboodschappen uitgebreid met
+*                    veld #JSMMSG.
+* =======================================================
+* Auteur ..........: ONMSTEEN   Marcel Steenstra
+* Datum/Tijd ......: 13/07/07 15:49:27
+* Aanpassing ......: PORB100 wordt aangeroepen met para-
+*                    meter #EX_MQMPRN welke gebruikt
+*                    wordt om de juiste queue uit MQCTAB
+*                    te lezen (MUST - CR31001427).
+* =======================================================
+* Auteur ..........: ONMSTEEN   Marcel Steenstra
+* Datum/Tijd ......: 16/10/08 12:07:11
+* Aanpassing ......: Trace J/N toegevoegd, PARTAB
+*                    gestuurd.
+*                    (OCC - CR31002679)
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ONMSTEEN   Marcel Steenstra
+* Datum/Tijd ..: 10/11/08  11:32:05
+* Aanpassing ..: CR31002601 - Upgrade Lansa Integrator
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ONMSTEEN   Marcel Steenstra
+* Datum/Tijd ..: 10/11/08  13:34:27
+* Aanpassing ..: CR31002754 - Eigen logbestand voor CMT
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ONMSTEEN   Marcel Steenstra
+* Datum/Tijd ..: 10/11/08  13:35:42
+* Aanpassing ..: CR31002755 - Eigen DTAARA voor CMT
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ONMSTEEN   Marcel Steenstra
+* Datum/Tijd ..: 27/03/09  12:43:32
+* Aanpassing ..: REL SMS CR31002958
+*                - MQ manager handle exchangen
+*                - Wanneer input parameter application
+*                  code leeg is deze vullen met POR
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODJBIJL    Jan van der Bijl
+* Datum/Tijd ..: 17/05/10  08:35:54
+* Aanpassing ..: WEB10.3: CR31004621
+*                Send and forget messages
+*                MSGFORMAT vullen met MQSTR
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODMSTEEN   Marcel Steenstra
+* Datum/Tijd ..: 07/10/10  16:52:04
+* Aanpassing ..: WEB10.3: CR31004621
+*                Ontvangen reply queue niet gebruiken,
+*                response berichten altijd in output
+*                queue uit MQCTAB
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODMSTEEN   Marcel Steenstra
+* Datum/Tijd ..: 28/10/10  13:27:43
+* Aanpassing ..: WEB10.3: CR31004621
+*                Default queue uit PARTAB gebruiken J/N
+*                is verwijderd, veld Response J/N uit
+*                PBSTAB wordt nu gebruikt voor de
+*                controle wel/niet een send and forget
+*                message
+* =======================================================
+* LET OP:
+* Alle velden die niet beginnen met JSM worden mee-
+* gegeven aan de intergrator functie's.
+* =======================================================
+Function Options(*DIRECT *DEFERWRITE *MLOPTIMIZE)
+Exchange Fields(#EX_FNCKEY) Option(*ALWAYS)
+* =======================================================
+* Tag: Definities
+* =======================================================
+* Connection handle manager, input- en outputqueue
+Define Field(#JSMHMR) Type(*CHAR) Length(4)
+Define Field(#JSMHQI) Type(*CHAR) Length(4)
+Define Field(#JSMHQO) Type(*CHAR) Length(4)
+Define Field(#MSGTYPE) Type(*DEC) Length(9) Decimals(0)
+Define Field(#MSGFORMAT) Type(*CHAR) Length(8)
+Define Field(#JSMMSGID) Type(*CHAR) Length(24)
+Define Field(#RQMANAGER) Type(*CHAR) Length(48)
+Define Field(#RQNAME) Type(*CHAR) Length(48)
+Define Field(#JSMUSR) Type(*CHAR) Length(12)
+Define Field(#APPLID) Type(*CHAR) Length(32)
+Define Field(#CCSID) Type(*DEC) Length(9) Decimals(0)
+Define Field(#JSMSTP) Type(*CHAR) Length(4)
+Define Field(#JSMCONIN) Type(*CHAR) Length(1)
+Define Field(#JSMINP) Type(*CHAR) Length(1)
+Define Field(#JSMOUTP) Type(*CHAR) Length(1)
+Define Field(#JSMOPN) Type(*CHAR) Length(1)
+Define Field(#JSM07) Type(*CHAR) Length(7)
+Define Field(#JSM08) Type(*CHAR) Length(8)
+Define Field(#JSM09) Type(*CHAR) Length(9)
+Define Field(#JSM11) Type(*CHAR) Length(11)
+Define Field(#JSM40) Type(*CHAR) Length(40)
+Define Field(#JSMP01) Type(*DEC) Length(1) Decimals(0)
+Define Field(#JSMP02) Type(*DEC) Length(2) Decimals(0)
+Define Field(#JSMP03) Type(*DEC) Length(3) Decimals(0)
+* Indicator om aan te geven of een bericht een
+* zgn. Send and Forget Message is.
+Define Field(#W_INDSAF) Reffld(#W_A01)
+* Indicator om aan te geven of een vervolgfunctie
+* moet worden aangeroepen.
+Define Field(#W_INDVFN) Reffld(#W_A01)
+* =======================================================
+* Tag: Overrides
+* =======================================================
+
+* =======================================================
+* Tag: Condities
+* =======================================================
+
+* =======================================================
+* Tag: Groepen
+* =======================================================
+Group_By Name(#GR_PBSTAB) Fields(#PBSRQN #PBSBVW #PBSRSP)
+Group_By Name(#GR_MQCTAB) Fields(#MQMPGM #MQMSRV #MQMINMN #MQMINPQ #MQMOUMN #MQMOUTQ #MQMDTAQ #MQMWTI)
+Group_By Name(#GR_SFMBST) Fields(#PBSRQN #SFMFNI #SFMPHI #SFMDTR #SFMTMR #SFMPNR #SFMAPP #SFMERR #SFMMSF)
+* =======================================================
+* Tag: Working Lists en Browse Lists
+* =======================================================
+Def_List Name(#JSMDUMMY) Fields(#FUNCTION) Type(*WORKING)
+* =======================================================
+* Tag: Main line: PORB100
+* =======================================================
+Execute Subroutine(INIT)
+
+Dowhile Cond('#JSMSTP = RUN')
+* Ophalen XMl bericht uit queue
+Use Builtin(MQ_GET) With_Args(#JSMHMR #JSMHQI #MQMWTI 500) To_Get(#JSMSTS #JSMMSG #MSGTYPE #MSGFORMAT #JSMMSGID #JSMCORID #RQMANAGER #RQNAME #JSMUSR #APPLID)
+If Cond('#JSMSTS *EQ OK')
+* Verwerk bericht
+Execute Subroutine(VERW_MSG)
+* Contoleren op Send and Forget Message.
+Execute Subroutine(CHK_SNDFRG)
+
+If Cond('#W_INDVFN *EQ J')
+* Eventueel aanroepen vervolgfunctie
+Execute Subroutine(FUNCTIE)
+Endif
+
+If Cond('#W_INDSAF *EQ J')
+* Er is sprake van een Send and Forget Message.
+* Record wegschrijven naar SFMBST.
+Execute Subroutine(INS_SFMBST)
+Else
+* Indien geen sprake is van een Send and Forget
+* Message, dan XML retour bericht in queue zetten.
+Execute Subroutine(PUT_XMLQUE)
+Endif
+Else
+* Lees DTAARA PODT100/CMTDT100
+Execute Subroutine(CHK_DTAARA)
+Endif
+Endwhile
+Execute Subroutine(CLOSE)
+* Standaard beëindiging programma
+Return
+* =======================================================
+* Verwerk bericht
+* =======================================================
+Subroutine Name(VERW_MSG)
+Change Field(#W_INDVFN) To(N)
+* Bepaal requestname m.b.v. algemene XSL
+Execute Subroutine(CONV_XML) With_Parms('RqAlg')
+* Lees met Requestname stuurtabel PBSTAB
+Fetch Fields(#GR_PBSTAB) From_File(PBSTAB) With_Key(#EX_PBSRQN) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+* Foutbericht
+Change Field(#EX_STATUS) To(NOK)
+Change Field(#EX_SUCC) To(FALSE)
+Change Field(#EX_MSGID) To(POR9999)
+Change Field(#EX_MSGF) To(CVSMSGFDUT)
+Use Builtin(GET_MESSAGE_DESC) With_Args(#EX_MSGID CVSMSGFDUT '*LIBL') To_Get(#EX_REASON)
+* Variabelen omzetten naar XML
+Execute Subroutine(CONV_VAR) With_Parms('RsAlg')
+Else
+Change Field(#W_INDVFN) To(J)
+Endif
+Endroutine
+* =======================================================
+* Bepaal of het ontvangen bericht een zgn. Send and
+* Forget Message is.
+* =======================================================
+Subroutine Name(CHK_SNDFRG)
+Change Field(#W_INDSAF) To(N)
+If Cond('(#RQNAME *EQ *BLANKS) *AND (#PBSRSP *EQ N)')
+* Remote queue is leeg en Response J/N = N --> Bericht
+* is een zgn. Send and Forget Message.
+* Bericht archiveren.
+Change Field(#W_INDSAF) To(J)
+Change Field(#W_P06) To(*AUTONUM06SENDFORG)
+Substring Field(#W_P06) Into_Field(#W_A06)
+Use Builtin(TCONCAT) With_Args(RQ #W_A06 '.xml') To_Get(#SFMFNI)
+Use Builtin(TCONCAT) With_Args('ARCHIVE FILE(' #SFMPHI #SFMFNI ')') To_Get(#JSMCMD)
+Execute Subroutine(JSMCOMMAND) With_Parms(1)
+Endif
+Endroutine
+* =======================================================
+* Schrijven record naar Send & Forget Messages
+* =======================================================
+Subroutine Name(INS_SFMBST)
+* Meeste velden zijn reeds gevuld.
+Change Field(#SFMDTR) To(*YYYYMMDDDYNAMIC)
+Change Field(#SFMTMR) To(*TIME)
+Change Field(#SFMERR) To(#EX_MSGID)
+Change Field(#SFMMSF) To(#EX_MSGF)
+Insert Fields(#GR_SFMBST) To_File(SFMBST) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is(*OKAY)
+* En het record definitief vastleggen.
+Commit
+Else
+Execute Subroutine(ABORT) With_Parms(9)
+Endif
+Endroutine
+* =======================================================
+* Retourbericht XML in de queue zetten
+* =======================================================
+Subroutine Name(PUT_XMLQUE)
+* MSGFORMAT altijd op MQSTR
+Change Field(#MSGFORMAT) To(MQSTR)
+* XML in de Queue plaatsen
+Change Field(#JSMCORID) To(#JSMMSGID)
+Use Builtin(MQ_PUT) With_Args(#JSMHMR #JSMHQO #MSGTYPE #MSGFORMAT #JSMMSGID #JSMCORID #MQMOUMN #MQMOUTQ #CCSID Y -1 300000 #JSMUSR #APPLID) To_Get(#JSMSTS #JSMMSG)
+If Cond('#JSMSTS *NE OK')
+* Foutbericht ????
+Endif
+Endroutine
+* =======================================================
+* Initialisatie programma
+* =======================================================
+Subroutine Name(INIT)
+Change Field(#JSMSVR) To(#EX_JSMSVR)
+* Lees DTAARA PODT100/CMTDT100
+Execute Subroutine(CHK_DTAARA)
+If Cond('#JSMSTP *EQ STOP')
+Return
+Endif
+Change Field(#JSMCONIN #JSMINP #JSMOUTP #JSMOPN) To(N)
+* Lege application code vullen met 'POR'
+If Cond('#EX_APPL *EQ *BLANKS')
+Change Field(#EX_APPL) To(POR)
+Endif
+Change Field(#SFMAPP) To(#EX_APPL)
+* Lees benodigde variabelen uit MQCTAB
+Use Builtin(TCONCAT) With_Args(*FUNCTION #EX_MQMPRN) To_Get(#MQMPGM)
+Fetch Fields(#GR_MQCTAB) From_File(MQCTAB) With_Key(#MQMPGM) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+Execute Subroutine(ABORT) With_Parms(1)
+Endif
+Change Field(#SFMPNR) To(#EX_MQMPRN)
+* Maak verbinding met de input queue manager
+Use Builtin(MQ_CONN) With_Args(#MQMINMN) To_Get(#JSMSTS #JSMMSG #JSMHMR)
+If Cond('#JSMSTS *EQ OK')
+Change Field(#JSMCONIN) To(J)
+Else
+Execute Subroutine(ABORT) With_Parms(2)
+Endif
+* Openen input queue
+Use Builtin(MQ_OPEN) With_Args(#JSMHMR #MQMINPQ I) To_Get(#JSMSTS #JSMMSG #JSMHQI)
+If Cond('#JSMSTS *EQ OK')
+Change Field(#JSMINP) To(J)
+Else
+Execute Subroutine(ABORT) With_Parms(3)
+Endif
+* Openen output queue
+Use Builtin(MQ_OPEN) With_Args(#JSMHMR #MQMOUTQ OU) To_Get(#JSMSTS #JSMMSG #JSMHQO)
+If Cond('#JSMSTS *EQ OK')
+Change Field(#JSMOUTP) To(J)
+Else
+Execute Subroutine(ABORT) With_Parms(4)
+Endif
+* Openen Java Service Manager
+Use Builtin(JSM_OPEN) With_Args(#JSMSVR) To_Get(#JSMSTS #JSMMSG)
+If Cond('#JSMSTS *EQ OK')
+Change Field(#JSMOPN) To(J)
+Else
+Execute Subroutine(ABORT) With_Parms(5)
+Endif
+* Ophalen directory voor archiveren messages
+Fetch Fields(#PARVA1 #PARVA2) From_File(PARTAB) With_Key(*FUNCTION 4) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is(*OKAY)
+Use Builtin(TCONCAT) With_Args(#PARVA1 #PARVA2) To_Get(#SFMPHI)
+Else
+Execute Subroutine(ABORT) With_Parms(8)
+Endif
+* Service load XMLQueueService
+* Ophalen trace aan/uit uit PARTAB
+Fetch Fields(#PARVA1) From_File(PARTAB) With_Key(*FUNCTION 1) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is(*OKAY)
+If Cond('#PARVA1 *EQ J')
+Change Field(#JSM11) To('''TRACE(*YES)''')
+Else
+Change Field(#JSM11) To(*BLANKS)
+Endif
+Else
+Change Field(#JSM11) To(*BLANKS)
+Endif
+Change Field(#JSMCMD) To('SERVICE_LOAD SERVICE(XMLQUEUESERVICE)')
+Use Builtin(BCONCAT) With_Args(#JSMCMD #JSM11) To_Get(#JSMCMD)
+Execute Subroutine(JSMCOMMAND) With_Parms(1)
+Endroutine
+* =======================================================
+* Uitvoeren JSM Command
+* =======================================================
+Subroutine Name(JSMCOMMAND) Parms((#JSMP01 *RECEIVED))
+If Cond('#JSMP01 *EQ 1')
+Use Builtin(JSM_COMMAND) With_Args(#JSMCMD) To_Get(#JSMSTS #JSMMSG)
+Else
+Use Builtin(JSM_COMMAND) With_Args(#JSMCMD) To_Get(#JSMSTS #JSMMSG #JSMDUMMY)
+Endif
+If Cond('#JSMSTS *NE OK')
+Execute Subroutine(ABORT) With_Parms(6)
+Endif
+Endroutine
+* =======================================================
+* Controleer dataara
+* =======================================================
+Subroutine Name(CHK_DTAARA)
+If Cond('#EX_APPL *EQ CMT')
+Use Builtin(GET_CHAR_AREA) With_Args(CMTDT100) To_Get(#JSMSTP)
+Else
+Use Builtin(GET_CHAR_AREA) With_Args(PODT100) To_Get(#JSMSTP)
+Endif
+Case Of_Field(#JSMSTP)
+When Value_Is('= RUN') /* oke   */
+When Value_Is('= STOP') /* stop  */
+Message Msgid(JSM0006) Msgf(CVSMSGFDUT)
+Otherwise /* ongeldig */
+Execute Subroutine(ABORT) With_Parms(7)
+Endcase
+Endroutine
+* =======================================================
+* Omzetten XML naar Lansa variabelen
+* =======================================================
+Subroutine Name(CONV_XML) Parms((#JSM07 *RECEIVED))
+Change Field(#JSMCMD) To('''RECEIVE XSL(''')
+Change Field(#JSM40) To(''') SERVICE_LIST(FUNCTION)''')
+Use Builtin(TCONCAT) With_Args(#JSMCMD #JSM07 #JSM40) To_Get(#JSMCMD)
+Execute Subroutine(JSMCOMMAND) With_Parms(2)
+Endroutine
+* =======================================================
+* Omzetten Lansa variabelen naar XML
+* =======================================================
+Subroutine Name(CONV_VAR) Parms((#JSM07 *RECEIVED))
+If Cond('#EX_PBSRQN *EQ *BLANKS')
+Change Field(#EX_PBSRSN) To('''response''')
+Else
+Change Field(#EX_PBSRSN) To(#EX_PBSRQN)
+Use Builtin(SCANSTRING) With_Args(#EX_PBSRSN REQUEST) To_Get(#JSMP03)
+Change Field(#JSM08) To('''response''')
+Substring Field(#JSM08) Into_Field(#EX_PBSRSN #JSMP03)
+Endif
+Change Field(#JSMCMD) To('SEND XSL(')
+Change Field(#JSM40) To(''') SERVICE_LIST(FUNCTION)''')
+Use Builtin(TCONCAT) With_Args(#JSMCMD #JSM07 #JSM40) To_Get(#JSMCMD)
+Execute Subroutine(JSMCOMMAND) With_Parms(2)
+Endroutine
+* =======================================================
+* Aanroepen juiste functie
+* =======================================================
+Subroutine Name(FUNCTIE)
+Change Field(#EX_JSMHMR) To(#JSMHMR)
+Exchange Fields(#EX_PBSRQN #EX_APPL #EX_JSMHMR)
+* Aanroepen functie
+Call Process(*DIRECT) Function(#PBSBVW) Pgm_Exch(*YES) If_Error(*NEXT)
+Endroutine
+* =======================================================
+* Abort
+* =======================================================
+Subroutine Name(ABORT) Parms((#JSMP02 *RECEIVED))
+Case Of_Field(#JSMP02)
+When Value_Is('= 1')
+Message Msgid(ALG0033) Msgf(CVSMSGFDUT) Msgdta(MQCTAB)
+When Value_Is('= 2')
+Message Msgid(JSM0001) Msgf(CVSMSGFDUT) Msgdta(#MQMINMN #JSMSTS)
+Message Msgid(JSM0012) Msgf(CVSMSGFDUT) Msgdta(#JSMMSG)
+When Value_Is('= 3')
+Message Msgid(JSM0002) Msgf(CVSMSGFDUT) Msgdta(#MQMINPQ #JSMSTS)
+Message Msgid(JSM0012) Msgf(CVSMSGFDUT) Msgdta(#JSMMSG)
+When Value_Is('= 4')
+Message Msgid(JSM0002) Msgf(CVSMSGFDUT) Msgdta(#MQMOUTQ #JSMSTS)
+Message Msgid(JSM0012) Msgf(CVSMSGFDUT) Msgdta(#JSMMSG)
+When Value_Is('= 5')
+Message Msgid(JSM0003) Msgf(CVSMSGFDUT) Msgdta(#JSMSTS)
+Message Msgid(JSM0012) Msgf(CVSMSGFDUT) Msgdta(#JSMMSG)
+When Value_Is('= 6')
+Message Msgid(JSM0004) Msgf(CVSMSGFDUT) Msgdta(#JSMSTS)
+Message Msgid(JSM0012) Msgf(CVSMSGFDUT) Msgdta(#JSMMSG)
+When Value_Is('= 7')
+If Cond('#EX_APPL *EQ CMT')
+Message Msgid(MQM0006) Msgf(CVSMSGFDUT) Msgdta(CMTDT100)
+Else
+Message Msgid(MQM0006) Msgf(CVSMSGFDUT) Msgdta(PODT100)
+Endif
+When Value_Is('= 8')
+Message Msgid(ALG0033) Msgf(CVSMSGFDUT) Msgdta(PARTAB)
+When Value_Is('= 9')
+Message Msgid(ALG0032) Msgf(CVSMSGFDUT) Msgdta(SFMBST)
+Otherwise
+Message Msgtxt('Onbekende fout opgetreden')
+Endcase
+Execute Subroutine(CLOSE)
+Rollback
+Abort
+Endroutine
+* =======================================================
+* Sluiten Java Service Manager + Queue's
+* =======================================================
+Subroutine Name(CLOSE)
+If Cond('#JSMOPN *EQ J')
+* Sluiten JSM connectie
+Use Builtin(JSM_CLOSE) To_Get(#JSMSTS #JSMMSG)
+If Cond('#JSMSTS *NE OK')
+Message Msgid(JSM0005) Msgf(CVSMSGFDUT) Msgdta(#JSMSTS)
+Endif
+Endif
+If Cond('#JSMOUTP *EQ J')
+* Sluiten output queue
+Use Builtin(MQ_CLOSE) With_Args(#JSMHMR #JSMHQO) To_Get(#JSMSTS #JSMMSG)
+If Cond('#JSMSTS *NE OK')
+Message Msgid(JSM0007) Msgf(CVSMSGFDUT) Msgdta(#JSMSTS)
+Endif
+Endif
+If Cond('#JSMINP *EQ J')
+* Sluiten input queue
+Use Builtin(MQ_CLOSE) With_Args(#JSMHMR #JSMHQI) To_Get(#JSMSTS #JSMMSG)
+If Cond('#JSMSTS *NE OK')
+Message Msgid(JSM0007) Msgf(CVSMSGFDUT) Msgdta(#JSMSTS)
+Endif
+Endif
+If Cond('#JSMCONIN *EQ J')
+* Sluiten connectie input manager
+Use Builtin(MQ_DISC) With_Args(#JSMHMR) To_Get(#JSMSTS #JSMMSG)
+If Cond('#JSMSTS *NE OK')
+Message Msgid(JSM0008) Msgf(CVSMSGFDUT) Msgdta(#MQMINMN #JSMSTS)
+Endif
+Endif
+Endroutine

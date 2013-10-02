@@ -1,0 +1,278 @@
+* =======================================================
+* ============= © VSB International B.V. ================
+* =======================================================
+* Naam proces .....: PORB1
+* Naam functie ....: PORB112
+* Titel ...........: Rapporteren verzekeringen bij
+*                    cardaanvraag
+* Doel ............: Gegevens van een via het web
+*                    aangevraagde verzekingen bij een
+*                    cardaanvraag uitlijsten.
+* Creatiedatum/tijd: 08/11/05 11:00:00
+* Bedrijf .........: Sogeti
+* Programmeur .....: ONGWORP    Gert van der Worp
+* LANSA release ...: 10.0
+* =======================================================
+* Bedrijf .........: Sogeti Nederland B.V.
+* Auteur ..........: ONMSTEEN   Marcel Steenstra
+* Datum/Tijd ......: 12/01/06 11:25:43
+* Aanpassing ......: Veld Hoofd/extra altijd tonen
+*                    Bepaling hoofd/extra aangepast
+*                    Bevinding 1156
+* =======================================================
+Function Options(*DIRECT *DEFERWRITE *MLOPTIMIZE)
+Exchange Fields(#EX_FNCKEY) Option(*ALWAYS)
+* =======================================================
+* Tag: Definities
+* =======================================================
+Define Field(#$EINDEOVZ) Type(*CHAR) Length(45)
+Define Field(#W_RECVRW) Type(*CHAR) Length(1)
+Define Field(#W_ERRCDE) Type(*DEC) Length(2) Decimals(0)
+Define Field(#W_ADR1) Type(*CHAR) Length(60) Label('Naam          :')
+Define Field(#W_ADR2) Type(*CHAR) Length(60) Label('Adres         :')
+Define Field(#W_ADR3) Type(*CHAR) Length(60)
+Define Field(#W_ADR4) Type(*CHAR) Length(60)
+* =======================================================
+* Tag: Overrides
+* =======================================================
+Override Field(#REP1PAGE) Label('Pagina:')
+Override Field(#W_A01) Label('Hoofd/extra   :')
+Override Field(#IVZCVP) Length(30)
+Override Field(#IVZTOC) Length(30)
+Override Field(#IVZDTI) Edit_Word('''  /  /    ''')
+Override Field(#IVPDTG) Edit_Word('''  /  /    ''')
+Override Field(#IVZINC) Edit_Code(3)
+* =======================================================
+* Tag: Condities
+* =======================================================
+Def_Cond Name(*DATUM) Cond('#IVZDTI *NE *ZERO')
+Def_Cond Name(*WAARDE) Cond('(#IVZINC *NE *ZERO) *OR (#IVZTOC *NE *BLANKS) *OR (#IVZAUT *NE N) *OR (#IVZDAV *NE N) *OR (#IVZCVP *NE *BLANKS)')
+
+* =======================================================
+* Tag: Groepen
+* =======================================================
+* Interface COB/VSB
+Group_By Name(#GR_COBBST) Fields(#COBPNM #COBRDT #COBRNR #COBVLG #COBRSR #COBNAM #COBSTR #COBHSA #COBHSN #COBPSC #COBWPL #COBCTY #COBLDN #COBDTG #COBVRL #COBVVG #COBTTL #COBGSL #COBREK #COBTLP #COBTLW #COBIBW #COBANR #COBCR1 #COBCR2 #COBIGB #COBIFC #COBIHE #COBDMI #COBGWL #COBDAG #COBCTP #COBANF #COBAPO #COBAAG #COBREL)
+* Interface verzekering
+Group_By Name(#GR_IVZBST) Fields(#COBPNM #COBRDT #COBRNR #COBVLG #IVZSGR #IVZCIN #IVZDTI #IVZINC #IVZTOC #IVZCVP #IVZAUT #IVZDAV #IVZIVW)
+* Interface verzekering persoon
+Group_By Name(#GR_IVPBST) Fields(#COBPNM #COBRDT #COBRNR #COBVLG #IVZSGR #IVZCIN #IVPVLG #IVPNAM #IVPGSL #IVPDTG)
+* Exchange group voor NAW-module NAWM150
+Group_By Name(#GR_150) Fields(#EX_NAWTOP #EX_NAWTKL #EX_NAWLNG #EX_NAWGOL #EX_NAWGSL #EX_NAWTLV #EX_NAWVRL #EX_NAWVVA #EX_NAWNAM #EX_NAWVVM #EX_NAWMNM #EX_NAWTLA #EX_NAWVNM)
+* Exchange group voor NAW-module NAWM160
+Group_By Name(#GR_160) Fields(#EX_NAWOPT #EX_NAWGLA #EX_NAWNR1 #EX_NAWSTR #EX_NAWHNR #EX_NAWHNE #EX_NAWBUA #EX_NAWPCD #EX_NAWWPL #EX_NAWLCD #EX_NAWREF)
+* =======================================================
+* Tag: Working Lists en Browse Lists
+* =======================================================
+
+* =======================================================
+* Tag: Rapporten
+* =======================================================
+* Rapport 'Verzekering bij cardaanvraag'
+Def_Report Formsize(*DEFAULT 143)
+Def_Head Name(#HEADER1) Fields((#FUNCTION *L001 *P001 *NOID) (#DDMMYYYY *L001 *P009 *NOID) (#W_A34 *L001 *P046 *NOID) (#REP1PAGE *L001 *P112) (#ISTOMS *L2 *P1 *NOID)) Across_Sep(1)
+Def_Line Name(#DETAIL1) Fields((#IVZSGR *L001 *P001) (#IVZDTI *L001 *P035 *DATUM) (#W_A01 *L001 *P082)) Space_Bef(3) Identify(*LABEL)
+Def_Line Name(#DETAIL2) Fields((#W_ADR1 *L001 *P005) (#IVZINC *L001 *P082 *WAARDE)) Identify(*LABEL)
+Def_Line Name(#DETAIL3) Fields((#W_ADR2 *L001 *P005) (#IVZTOC *L001 *P082 *WAARDE)) Identify(*LABEL)
+Def_Line Name(#DETAIL4) Fields((#W_ADR3 *L001 *P021 *NOID) (#IVZCVP *L001 *P082 *WAARDE)) Identify(*LABEL)
+Def_Line Name(#DETAIL5) Fields((#W_ADR4 *L001 *P021 *NOID) (#IVZAUT *L001 *P082 *WAARDE)) Identify(*LABEL)
+Def_Line Name(#DETAIL6) Fields((#IVZDAV *L001 *P082 *WAARDE)) Identify(*LABEL)
+Def_Line Name(#DETAIL7) Fields((#W_A08 *L001 *P005 *NOID)) Identify(*LABEL)
+Def_Line Name(#DETAIL8) Fields((#W_A04 *L001 *P005 *NOID) (#W_A08A *L001 *P040 *NOID) (#W_A13 *L001 *P055 *NOID)) Identify(*LABEL)
+Def_Line Name(#DETAIL9) Fields((#IVPNAM *L001 *P005 *NOID) (#IVPGSL *L001 *P040 *NOID) (#IVPDTG *L001 *P055 *NOID)) Identify(*LABEL)
+Def_Break Name(#EINDE) Fields((#$EINDEOVZ *L005 *P040 *NOID)) Space_Bef(3)
+* =======================================================
+* Tag: Main line: PORB112
+* =======================================================
+Execute Subroutine(INIT)
+* Lees niet-verwerkte gegevens uit Interface verzekering
+Select Fields(#GR_IVZBST) From_File(IVZBST1) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+Execute Subroutine(RLLBCK) With_Parms(1)
+Endif
+Change Field(#W_RECVRW) To(J)
+Change Field(#W_A01A) To(J)
+* Ingangsdatum opmaken
+Use Builtin(CONVERTDATE_NUMERIC) With_Args(#IVZDTI J H) To_Get(#IVZDTI)
+* Lees het bijbehorende record in COBBST
+Fetch Fields(#GR_COBBST) From_File(COBBST) With_Key(#COBPNM #COBRDT #COBRNR #COBVLG) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+Execute Subroutine(RLLBCK) With_Parms(3)
+Endif
+* Opmaken van de naam/adresgegevens mbv NAW modules
+Execute Subroutine(OPMAAK)
+* Hoofd/extra opmaken
+If Cond('#IVZCIN *EQ ''0''')
+Change Field(#W_A01) To(H)
+Else
+Use Builtin(CHECKNUMERIC) With_Args(#IVZCIN) To_Get(#W_P01)
+Case Of_Field(#W_P01)
+When Value_Is('= 0')
+Change Field(#W_A01) To(*BLANKS)
+Otherwise
+Change Field(#W_A01) To(E)
+Endcase
+Endif
+* Afdrukken regels 1 t/m 5 (verzekering)
+Execute Subroutine(RAPPORT1)
+* Selecteren eventuele bijbehorende personen
+Select Fields(#GR_IVPBST) From_File(IVPBST) With_Key(#COBPNM #COBRDT #COBRNR #COBVLG #IVZSGR #IVZCIN) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+Execute Subroutine(RLLBCK) With_Parms(6)
+Endif
+* Geboortedatum opmaken
+Use Builtin(CONVERTDATE_NUMERIC) With_Args(#IVPDTG J H) To_Get(#IVPDTG)
+* Afdrukken regels 6 t/m 9 (personen)
+Execute Subroutine(RAPPORT2)
+Change Field(#W_A01A) To(N)
+Endselect
+* Indicator verwerkt op J zetten
+Execute Subroutine(UPDIVZ)
+* Rapport regels weer leeg poetsen
+Change Field(#DETAIL1 #DETAIL2 #DETAIL3 #DETAIL4 #DETAIL5 #DETAIL6 #DETAIL9) To(*NULL)
+Endselect
+If Cond('#W_RECVRW *EQ ''N''')
+* Leeg rapport maken
+Execute Subroutine(RAPPORT1)
+Endif
+
+* Standaard beëindiging programma
+Commit
+Return
+
+* =======================================================
+* Initialisatie programma
+* =======================================================
+Subroutine Name(INIT)
+Change Field(#W_RECVRW) To(N)
+Change Field(#EX_RETCD) To(0)
+* Einde overzicht
+Change Field(#$EINDEOVZ) To('''* * * * E I N D E   O V E R Z I C H T * * * *''')
+* Titel rapport
+Change Field(#W_A34) To('''Verzekeringen bij cardaanvraag''')
+Change Field(#W_A08) To('''Personen''')
+Change Field(#W_A04) To('''Naam''')
+Change Field(#W_A08A) To('''Geslacht''')
+Change Field(#W_A13) To('''Geboortedatum''')
+* Ophalen institution omschrijving + default taalcode
+Fetch Fields(#ISTOMS #ISTLNG) From_File(ISTTAB) With_Key(*DTA161003PARTITIE) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+Execute Subroutine(RLLBCK) With_Parms(2)
+Endif
+Endroutine
+* =======================================================
+* Opmaken van de NAW gegevens mbv de algemene NAW modules
+* =======================================================
+Subroutine Name(OPMAAK)
+* Vullen velden voor aanroep "Opmaken van namen"
+Change Field(#GR_150) To(*NULL)
+Change Field(#EX_NAWTOP) To(1)
+Change Field(#EX_NAWTKL) To(P)
+Change Field(#EX_NAWLNG) To(#ISTLNG)
+Change Field(#EX_NAWGOL) To(60)
+Change Field(#EX_NAWGSL) To(#COBGSL)
+Change Field(#EX_NAWVRL) To(#COBVRL)
+Change Field(#EX_NAWVVA) To(#COBVVG)
+Change Field(#EX_NAWNAM) To(#COBNAM)
+Exchange Fields(#EX_NAWTOP #EX_NAWTKL #EX_NAWLNG #EX_NAWGOL #EX_NAWGSL #EX_NAWTLV #EX_NAWVRL #EX_NAWVVA #EX_NAWNAM #EX_NAWVVM #EX_NAWMNM #EX_NAWTLA #EX_NAWVNM)
+Call Process(*DIRECT) Function(NAWM150) Pgm_Exch(*YES) If_Error(*NEXT)
+If Cond('#EX_RETCD *NE 0')
+Execute Subroutine(RLLBCK) With_Parms(4)
+Endif
+* Aanroepen QAS voor ophalen straatnaam en woonplaats
+Execute Subroutine(KMOD108)
+If Cond('#EX_RETCD *EQ *ZERO')
+* Vullen velden voor aanroep "Opmaken van NAW gegevens"
+Change Field(#GR_160) To(*NULL)
+Change Field(#EX_NAWOPT) To('''1''')
+Change Field(#EX_NAWGLA) To(60)
+Change Field(#EX_NAWNR1) To(#EX_NAWONM)
+Change Field(#EX_NAWSTR) To(#EX_QASST)
+Change Field(#EX_NAWHNR) To(#COBHSN)
+Change Field(#EX_NAWHNE) To(#COBHSA)
+Change Field(#EX_NAWPCD) To(#COBPSC)
+Change Field(#EX_NAWWPL) To(#EX_QASWP)
+Change Field(#EX_NAWLCD) To(#COBCTY)
+Exchange Fields(#EX_NAWOPT #EX_NAWGLA #EX_NAWNR1 #EX_NAWSTR #EX_NAWHNR #EX_NAWHNE #EX_NAWBUA #EX_NAWPCD #EX_NAWWPL #EX_NAWLCD #EX_NAWREF)
+Call Process(*DIRECT) Function(NAWM160) Pgm_Exch(*YES) If_Error(*NEXT)
+If Cond('#EX_RETCD *NE 0')
+Execute Subroutine(RLLBCK) With_Parms(5)
+Endif
+Change Field(#W_ADR1) To(#EX_NAWRG1)
+Change Field(#W_ADR2) To(#EX_NAWRG2)
+Change Field(#W_ADR3) To(#EX_NAWRG3)
+Change Field(#W_ADR4) To(#EX_NAWRG4)
+Else
+* Onbekende postcode
+Change Field(#W_ADR1) To(#EX_NAWONM)
+Change Field(#W_ADR2) To(#COBPSC)
+Use Builtin(NUMERIC_STRING) With_Args(#COBHSN) To_Get(#W_A05)
+Use Builtin(BCONCAT) With_Args(#W_ADR2 #W_A05 #COBHSA) To_Get(#W_ADR2)
+Change Field(#W_ADR3) To('''Onbekende postcode''')
+Change Field(#W_ADR4) To(*BLANKS)
+Endif
+Endroutine
+* =======================================================
+* Afdrukken rapportregels voor de verzekering
+* =======================================================
+Subroutine Name(RAPPORT1)
+Print Line(#DETAIL1)
+Print Line(#DETAIL2)
+Print Line(#DETAIL3)
+Print Line(#DETAIL4)
+Print Line(#DETAIL5)
+Print Line(#DETAIL6)
+Endroutine
+* =======================================================
+* Afdrukken rapportregels voor de verzekerde persoon
+* =======================================================
+Subroutine Name(RAPPORT2)
+If Cond('#W_A01A *EQ J')
+Print Line(#DETAIL7)
+Print Line(#DETAIL8)
+Endif
+Print Line(#DETAIL9)
+Endroutine
+* =======================================================
+* Aanroepen van de functie KMOD108
+* =======================================================
+Subroutine Name(KMOD108)
+Change Field(#EX_QASPC) To(#COBPSC)
+Change Field(#EX_QASHN) To(#COBHSN)
+Change Field(#EX_QASHE) To(#COBHSA)
+Exchange Fields(#EX_QASPC #EX_QASHN #EX_QASHE)
+Call Process(*DIRECT) Function(KMOD108) Exit_Used(*NEXT) Menu_Used(*NEXT)
+Endroutine
+* =======================================================
+* Updaten indicator verwerkt in IVZBST
+* =======================================================
+Subroutine Name(UPDIVZ)
+Change Field(#IVZIVW) To(J)
+Update Fields(#IVZIVW) In_File(IVZBST1) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+Execute Subroutine(RLLBCK) With_Parms(7)
+Endif
+Endroutine
+* =======================================================
+* SUBROUTINE(RLLBCK) ROLLBACK MET FOUTMELDING
+* =======================================================
+Subroutine Name(RLLBCK) Parms((#W_ERRCDE *RECEIVED))
+Case Of_Field(#W_ERRCDE)
+When Value_Is('= 1') /* Fout met IVZBST */
+Message Msgid(ALG0033) Msgf(CVSMSGFDUT) Msgdta(IVZBST)
+When Value_Is('= 2') /* Fout met ISTTAB */
+Message Msgid(ALG0033) Msgf(CVSMSGFDUT) Msgdta(ISTTAB)
+When Value_Is('= 3') /* Fout met COBBST */
+Message Msgid(ALG0033) Msgf(CVSMSGFDUT) Msgdta(COBBST)
+When Value_Is('= 4') /* Fout met NAWM150 */
+Message Msgid(GEN0105) Msgf(CVSMSGFDUT) Msgdta(NAWM150)
+When Value_Is('= 5') /* Fout met NAWM160 */
+Message Msgid(GEN0105) Msgf(CVSMSGFDUT) Msgdta(NAWM160)
+When Value_Is('= 6') /* Fout met IVPBST */
+Message Msgid(ALG0033) Msgf(CVSMSGFDUT) Msgdta(IVPBST)
+When Value_Is('= 7') /* Fout met IVZBST */
+Message Msgid(ALG0032) Msgf(CVSMSGFDUT) Msgdta(IVZBST)
+Endcase
+Rollback
+Abort
+Endroutine

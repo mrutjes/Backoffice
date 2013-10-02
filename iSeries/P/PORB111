@@ -1,0 +1,804 @@
+* =======================================================
+* ============= © VSB International B.V. ================
+* =======================================================
+* Naam proces .....: PORB1
+* Naam functie ....: PORB111
+* Titel ...........: Inlezen aanvraag card 2
+* Doel ............: Binnenhalen van aanvraaggegevens uit
+*                    proces "Inlezen aanvraag card 1" en
+*                    wegschrijven van deze gegevens in de
+*                    aanvraagsysteem-bestanden.
+* Creatiedatum/tijd: 02/11/05 11:11:05
+* Bedrijf .........: Sogeti Nederland B.V.
+* Programmeur .....: ONGWORP    Gert van der Worp
+* LANSA release ...: 10.0
+* =======================================================
+* Bedrijf .........: Sogeti Nederland B.V.
+* Auteur ..........: ONMSTEEN   Marcel Steenstra
+* Datum/Tijd ......: 08/03/06 10:46:54
+* Aanpassing ......: Telefoonnummers opmaken met een
+*                    streepje.
+* =======================================================
+* Bedrijf .........: Sogeti Nederland B.V.
+* Auteur ..........: ONMSTEEN   Marcel Steenstra
+* Datum/Tijd ......: 21/02/07 15:07:12
+* Aanpassing ......: Dynamische systeemdatum gebruiken.
+* =======================================================
+* Bedrijf .........: Sogeti Nederland B.V.
+* Auteur ..........: ONMSTEEN   Marcel Steenstra
+* Datum/Tijd ......: 15/12/08 14:31:05
+* Aanpassing ......: CR31000727 - WEB8.4
+*                    Extra velden in XML bericht
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ONJBIJL    Jan van der Bijl
+* Datum/Tijd ..: 08/01/09 11:04:57
+* Aanpassing ..: WEB8.4 CR31001716 en CR31001739
+*                Extra velden in XML bericht
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ONMSTEEN   Marcel Steenstra
+* Datum/Tijd ..: 19/03/09 12:06:32
+* Aanpassing ..: Clixicon
+*                Vullen message-id bij foute
+*                INSERT in COBBST
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ONJBIJL    Jan van der Bijl
+* Datum/Tijd ..: 08/01/09 11:04:57
+* Aanpassing ..: Clixicon CR31003156
+*                Extra velden in XML bericht
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODMSTEEN    Marcel Steenstra
+* Datum/Tijd ..: 14/04/10 12:12:29
+* Aanpassing ..: Rel104 CCD CR31004787
+*                Extra velden in XML bericht
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODJBOY   Yvonne de Boer
+* Datum/Tijd ..: 22/07/10 09:52:00
+* Aanpassing ..: CR31004875  Uitbreiding bericht met
+*                Employee pasnummer (COBEPN) en V&D
+*                verzekering (COBVZK)
+*                CR31005208 Uitbreiding bericht met
+*                telefoonnummer werk (COBTLW)
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODSZWAGE Sjack Zwager
+* Datum/Tijd ..: 05/08/10 11:02:23
+* Aanpassing ..: CR31005163  Uitbreiding bericht met
+*                Kamer van Koophandelnummer (COBKKN)
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODJBOY Yvonne de Boer
+* Datum/Tijd ..: 11/08/10 11:05:33
+* Aanpassing ..: Om bevindingen in test en productie voor
+*                te zijn: KvK nr uit xml (A/50)wordt com-
+*                patibel gemaakt met COBKKN (P/10).
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODMSTEEN    Marcel Steenstra
+* Datum/Tijd ..: 11/11/10 15:50:38
+* Aanpassing ..: WEB10.6.1 CR31005310
+*                Extra velden verblijfsvergunning, eind
+*                datum dienstverband en werkgever woon-
+*                plaats in XML bericht.
+*                Verwerking burgerlijke staat en
+*                nationaliteit aangepast.
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODMSTEEN    Marcel Steenstra
+* Datum/Tijd ..: 08/12/10 16:06:51
+* Aanpassing ..: WEB10.6.1 CR31005310 Bev. 2214
+*                Veld Start date address toegevoegd
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODMSTEEN    Marcel Steenstra
+* Datum/Tijd ..: 09/12/10 12:21:09
+* Aanpassing ..: MUST CR31005605 Ongeldige postcode
+*                werkgever mag niet tot uitval leiden.
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODJBOY    Yvonne de Boer
+* Datum/Tijd ..: 21/03/11 12:22:28
+* Aanpassing ..: CR31005903:Toevoegen woonlastenbewijs.
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODJBOY  Yvonne de Boer
+* Datum/Tijd ..: 13/09/11 14:25:26
+* Aanpassing ..: MUST CR31007091 toevoegen e-mailadres
+*                extrakaarthouder
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODMSTEEN    Marcel Steenstra
+* Datum/Tijd ..: 03/09/12 10:34:22
+* Aanpassing ..: MUST CR31008705
+*                Veld Annual bonus toegevoegd
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODSGREIJ  Sjoerd Greijdanus
+* Datum/Tijd ..: 05/12/12 13:36:12
+* Aanpassing ..: MUST CR31008806
+*                Taalcode toegevoegd
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODSGREIJ  Sjoerd Greijdanus
+* Datum/Tijd ..: 22/02/13 09:40:22
+* Aanpassing ..: MUST CR31009430
+*                IBAN en BIC toegevoegd
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODRHEUVE  Ron van den Heuvel
+* Datum/Tijd ..: 12/06/13 17:15:00
+* Aanpassing ..: CR31010101  Aanpassing telefoonnummer-
+*                opmaak Clixicon aanvragen.
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODRHEUVE  Ron van den Heuvel
+* Datum/Tijd ..: 01/08/13 09:15:00
+* Aanpassing ..: CR31010402   Clixicon interface vernageld
+*                de straatnaam werkgever.
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODAVELDH Ab Veldhuizen
+* Datum/Tijd ..: 27/09/13 09:15:00
+* Aanpassing ..: CR31008696   Titel, voornaam en straat-
+*                naam werkgever toegevoegd + verwerking
+*                duitse telefoonnummers
+* =======================================================
+Function Options(*DIRECT *DEFERWRITE *MLOPTIMIZE) Rcv_List(#JSMEXTRA #JSMADDSV #JSMCOMP #JSMCRDAS)
+Exchange Fields(#EX_FNCKEY) Option(*ALWAYS)
+* =======================================================
+* Tag: Definities
+* =======================================================
+Define Field(#V_COBGDT) Type(*CHAR) Length(8)
+Define Field(#W_COBDTD) Type(*CHAR) Length(8)
+Define Field(#W_COBVDT) Type(*CHAR) Length(8)
+Define Field(#W_COBDDT) Type(*CHAR) Length(8)
+Define Field(#W_COBDTA) Type(*CHAR) Length(8)
+Define Field(#W_IVPDTG) Type(*CHAR) Length(8)
+Define Field(#W_IVZDTI) Type(*CHAR) Length(8)
+Define Field(#H_IVZSGR) Reffld(#IVZSGR)
+Define Field(#W_FIRST1) Type(*CHAR) Length(1) To_Overlay(#W_A15)
+Define Field(#W_FIRST2) Type(*CHAR) Length(2) To_Overlay(#W_A15)
+Define Field(#W_FIRST3) Type(*CHAR) Length(3) To_Overlay(#W_A15)
+Define Field(#W_FIRST4) Type(*CHAR) Length(4) To_Overlay(#W_A15)
+Define Field(#W_FIRST5) Type(*CHAR) Length(5) To_Overlay(#W_A15)
+Define Field(#W_LAST10) Type(*CHAR) Length(10) To_Overlay(#W_A15 6)
+Define Field(#W_LAST11) Type(*CHAR) Length(11) To_Overlay(#W_A15 5)
+Define Field(#W_LAST12) Type(*CHAR) Length(12) To_Overlay(#W_A15 4)
+Define Field(#W_LAST13) Type(*CHAR) Length(13) To_Overlay(#W_A15 3)
+* =======================================================
+* Tag: Overrides
+* =======================================================
+
+* =======================================================
+* Tag: Condities
+* =======================================================
+
+* =======================================================
+* Tag: Groepen
+* =======================================================
+* Interface COB/VSB
+Group_By Name(#GR_COBBST) Fields(#COBPNM #COBRDT #COBRNR #COBVLG #COBRSR #COBNAM #COBSTR #COBHSA #COBHSN #COBPSC #COBWPL #COBCTY #COBLDN #COBDTG #COBVRL #COBVVG #COBTTL #COBVNM #COBGSL #COBREK #COBBAN #COBBIC #COBTLP #COBTLW #COBIBW #COBANR #COBCR1 #COBCR2 #COBIGB #COBIFC #COBIHE #COBDMI #COBGWL #COBDAG #COBCTP #COBANF #COBAPO #COBAAG #COBREL #V_COBRDT #V_COBDTG #COBSNR #COBRSC #COBTLM #COBEMA #COBMAS #COBEMP #COBINC #COBID #COBLNR #COBVBD #COBHUS #COBMID #COBMSF #COBICT #COBITV #COBIVW #COBVHC #COBNAT #COBWNA #COBWPO #COBWWS #COBWWP #V_COBDTD #COBMNM #COBMVV #COBGPL #COGCTY #COBKTL #COBNIN #COBIPA #COBIID #COBMHC #COBALI #COBNLP #COBAIN #COBIKO #COBOVP #COBINB #COBWLB #COBORI #COBEPN #COBVZK #COBKKN #COBVBG #COBVDT #V_COBVDT #COBDDT #V_COBDDT #CONCTY #V_COBDTA #COBANB #COBLNG)
+* Interface verzekering
+Group_By Name(#GR_IVZBST) Fields(#COBPNM #COBRDT #COBRNR #COBVLG #IVZSGR #IVZCIN #IVZDTI #IVZINC #IVZTOC #IVZCVP #IVZAUT #IVZDAV #IVZIVW)
+* Interface verzekering persoon
+Group_By Name(#GR_IVPBST) Fields(#COBPNM #COBRDT #COBRNR #COBVLG #IVZSGR #IVZCIN #IVPVLG #IVPNAM #IVPGSL #IVPDTG)
+Group_By Name(#JSMAANVR) Fields(#PVAIDN #COBCR1 #COBGWL #COBVRL #COBVVG #COBNAM #COBGSL #COBGDT #COBNAT #COBSNR #COBMAS #COBPSC #COBHSN #COBHSA #COBTLP #COBTLW #COBTLM #COBEMA #COBDTD #COBREK #COBBAN #COBBIC #COBEMP #COBIBW #COBPRC #COBVBD #COBHUS #COBSEM #COBMNM #COBMVV #COBGPL #COBLOB #COBCFR #COBIDT #COBLNR #COBBMI #COBAPO #COBIPA #COBIID #COBEPN #COBVZK #COBMHC #COBALI #COBNLP #COBAIN #COBIKO #COBLNG #COBOVP #COBVBG #COBVED #COBEEM)
+* =======================================================
+* Tag: Working Lists en Browse Lists
+* =======================================================
+Def_List Name(#JSMEXTRA) Fields(#CBXVRL #CBXVVG #CBXNAM #CBXDTG #CBXGSL #CBXMAS #CBXCR1 #CBXSNR #CBXNAT #CBXMNM #CBXMVV #CBXIID #CBXEPN #CBXVZK #CBXVBG #CBXVED #CBXEMA) Type(*WORKING) Entrys(10)
+Def_List Name(#JSMADDSV) Fields(#IVZSGR #IVZINC #IVZAUT #IVZDAV #IVZTOC #IVZCVP #IVZDTS #IVPNAM #IVPGSL #IVPGDT) Type(*WORKING) Entrys(10)
+Def_List Name(#JSMCRDAS) Fields(#IVZSGR #IVZCIN) Type(*WORKING) Entrys(10)
+Def_List Name(#JSMCOMP) Fields(#COBWNA #COBWPO #EX_QASHN #EX_QASHE #COBWWS #COBWWP) Type(*WORKING) Entrys(1)
+* =======================================================
+* Tag: Main line: PORB111
+* =======================================================
+Execute Subroutine(INIT)
+
+* Verwerk JSMAANVR/JSMCOMP list
+If Cond('#EX_RETCD *EQ 0')
+Execute Subroutine(JSMAANVR)
+Endif
+
+* Verwerk JSMEXTRA list
+If Cond('#EX_RETCD *EQ 0')
+Execute Subroutine(JSMEXTRA)
+Endif
+
+* Verwerk JSMCRDAS list
+If Cond('#EX_RETCD *EQ 0')
+Execute Subroutine(JSMCRDAS)
+Endif
+
+* Verwerk JSMADDSV list
+If Cond('#EX_RETCD *EQ 0')
+Execute Subroutine(JSMADDSV)
+Endif
+
+* Standaard beëindiging programma
+If Cond('#EX_RETCD *EQ 0')
+Commit
+Else
+Rollback
+Endif
+Exchange Fields(#EX_RETCD #EX_MSGID #EX_MSGF)
+Return
+
+* =======================================================
+* Verwerken gegevens voor aanvraag hoofdkaart
+* =======================================================
+Subroutine Name(JSMAANVR)
+Selectlist Named(#JSMCOMP)
+Leave
+Endselect
+* Ophalen cobrander code uit CDSBST (via logical)
+Fetch Fields(#CDSPRJ) From_File(CDSBST2) With_Key(#CDSPRM #PVAIDN) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+Change Field(#EX_RETCD) To(1)
+Change Field(#EX_MSGID) To(POR0001)
+Change Field(#EX_MSGF) To(CVSMSGFDUT)
+Return
+Endif
+* Velden vullen voor aanmaken record COBBST
+Change Field(#COBPNM) To(#CDSPRJ)
+Change Field(#COBRDT) To(*YYYYMMDDDYNAMIC)
+Use Builtin(CONVERTDATE_NUMERIC) With_Args(#COBRDT J H) To_Get(#V_COBRDT)
+Change Field(#COBRNR #COBRSR) To(1)
+* Bepalen volgnr COBBST
+Execute Subroutine(AVLG127)
+Change Field(#COBCTY) To(#ISTCTY)
+Use Builtin(CONVERTDATE) With_Args(#COBGDT K H) To_Get(#V_COBGDT)
+Use Builtin(CHECKNUMERIC) With_Args(#V_COBGDT) To_Get(#V_COBDTG)
+Use Builtin(CONVERTDATE) With_Args(#COBSEM K H) To_Get(#W_COBDTD)
+Use Builtin(CHECKNUMERIC) With_Args(#W_COBDTD) To_Get(#V_COBDTD)
+Use Builtin(CONVERTDATE) With_Args(#COBEEM K H) To_Get(#W_COBDDT)
+Use Builtin(CHECKNUMERIC) With_Args(#W_COBDDT) To_Get(#V_COBDDT)
+Use Builtin(CONVERTDATE) With_Args(#COBDTAA K H) To_Get(#W_COBDTA)
+Use Builtin(CHECKNUMERIC) With_Args(#W_COBDTA) To_Get(#V_COBDTA)
+Case Of_Field(#COBGSL)
+When Value_Is('= ''1''')
+Change Field(#COBGSL) To(M)
+When Value_Is('= ''2''')
+Change Field(#COBGSL) To(V)
+Otherwise
+Change Field(#COBGSL) To(O)
+Endcase
+If Cond('#COBTLP *NE *BLANKS')
+* Streepje toevoegen aan telefoonnummer prive
+Execute Subroutine(OPM_TEL) With_Parms(#COBTLP)
+If Cond('#EX_RETCD *NE *ZERO')
+Return
+Endif
+Endif
+If Cond('#COBTLW *NE *BLANKS')
+* Streepje toevoegen aan telefoonnummer prive
+Execute Subroutine(OPM_TEL) With_Parms(#COBTLW)
+If Cond('#EX_RETCD *NE *ZERO')
+Return
+Endif
+Endif
+If Cond('#COBTLM *NE *BLANKS')
+* Streepje toevoegen aan telefoonnummer mobiel
+Execute Subroutine(OPM_TEL) With_Parms(#COBTLM)
+If Cond('#EX_RETCD *NE *ZERO')
+Return
+Endif
+Endif
+If Cond('#COBIBW *EQ A')
+Change Field(#COBIBW) To(J)
+Else
+Change Field(#COBIBW) To(N)
+Endif
+If Cond('(#COBPRC *EQ 100) *OR (#COBPRC *EQ 0)')
+Change Field(#COBIGB) To(N)
+Else
+Change Field(#COBIGB) To(J)
+Endif
+* indicatie hoofd card
+Change Field(#COBIHE) To(H)
+If Cond('#COBWPO *NE *BLANKS')
+If Cond('#ISTCTY *EQ NL')
+* Aanroepen QAS voor ophalen straatnaam en woonplaats van
+* de werkgever ( alleen voor Nederland )
+Execute Subroutine(KMOD108)
+If Cond('#EX_RETCD *EQ 1')
+Change Field(#EX_RETCD) To(*ZERO)
+Use Builtin(CLR_MESSAGES)
+Else
+Change Field(#COBWWS) To(#EX_QASST)
+If Cond('#COBWWP *EQ *BLANKS')
+Change Field(#COBWWP) To(#EX_QASWP)
+Endif
+If Cond('#COBWWS *EQ *BLANKS')
+Change Field(#COBWWS) To(#EX_QASST)
+Endif
+Endif
+Endif
+Endif
+* Landcode geboorteland
+If Cond('#COBLOB *EQ ''001''')
+Change Field(#COGCTY) To(*BLANKS)
+Else
+Change Field(#COGCTY) To(#COBLOB)
+Endif
+* Kamer van Koophandel
+If Cond('#W_COBKKN *NE *BLANKS')
+Use Builtin(CHECKNUMERIC) With_Args(#W_COBKKN 30 0 '.') To_Get(#W_P30)
+Change Field(#COBKKN) To(#W_P30)
+Endif
+* Aantal kinderen ten laste
+Case Of_Field(#COBCFR)
+When Value_Is('= NONE')
+Change Field(#COBKTL) To(*ZERO)
+When Value_Is('= ONE')
+Change Field(#COBKTL) To(1)
+When Value_Is('= TWO')
+Change Field(#COBKTL) To(2)
+When Value_Is('= THREE')
+Change Field(#COBKTL) To(3)
+When Value_Is('= FOUR')
+Change Field(#COBKTL) To(4)
+When Value_Is('= FIVE')
+Change Field(#COBKTL) To(5)
+Otherwise
+Change Field(#COBKTL) To(6)
+Endcase
+* Type legitimatie
+Case Of_Field(#COBIDT)
+When Value_Is('= PASSPORT')
+Change Field(#COBID) To('''001''')
+When Value_Is('= IDENTIFICATION_CARD')
+Change Field(#COBID) To('''004''')
+When Value_Is('= DRIVERS_LICENSE')
+Change Field(#COBID) To('''002''')
+Otherwise
+Change Field(#COBID) To(*BLANKS)
+Endcase
+* Inkomensbewijs, Woonlastenbewijs
+Change Field(#COBINB #COBWLB) To(W)
+* Originator
+Change Field(#COBORI) To(W)
+* Netto inkomen
+Use Builtin(CHECKNUMERIC) With_Args(#COBBMI) To_Get(#COBNIN)
+* Nationaliteit
+If Cond('(#COBNAT *EQ *BLANKS) *OR (#COBNAT *EQ ''001'')')
+Change Field(#CONCTY) To(*BLANKS)
+Else
+If Cond('#COBNAT *EQ #ISTCTY')
+Change Field(#CONCTY) To(*BLANKS)
+Change Field(#COBNAT) To(*BLANKS)
+Else
+Change Field(#CONCTY) To(#COBNAT)
+Change Field(#COBNAT) To('''001''')
+Endif
+Endif
+* Burgerlijke staat eventueel omzetten
+If Cond('(#COBMAS *NE *BLANKS) *AND (#COBKTL *GT *ZERO)')
+Fetch Fields(#PARVA2) From_File(PARTAB1) With_Key(*FUNCTION #COBMAS) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is(*OKAY)
+Change Field(#COBMAS) To(#PARVA2)
+Endif
+Endif
+* Verblijfsvergunning
+If Cond('#COBVBG *EQ T')
+Change Field(#COBVBG) To(B)
+Else
+If Cond('#COBVBG *EQ D')
+Change Field(#COBVBG) To(O)
+Else
+Change Field(#COBVBG) To(*BLANKS)
+Endif
+Endif
+If Cond('#COBVED *NE *BLANKS')
+Use Builtin(CONVERTDATE) With_Args(#COBVED K H) To_Get(#W_COBVDT)
+Use Builtin(CHECKNUMERIC) With_Args(#W_COBVDT) To_Get(#V_COBVDT)
+Endif
+* Bewaren volgnummer hoofdkaart
+Change Field(#W_P05) To(#COBVLG)
+* Record inserten in COBBST
+Execute Subroutine(INSCOB)
+* Indien fout dan message vullen
+If Cond('#EX_RETCD *EQ 1')
+Change Field(#EX_MSGID) To(POR0002)
+Change Field(#EX_MSGF) To(CVSMSGFDUT)
+Endif
+Endroutine
+* =======================================================
+* Verwerken gegevens voor aanvraag extra kaart
+* =======================================================
+Subroutine Name(JSMEXTRA)
+Selectlist Named(#JSMEXTRA)
+Leave If('#CBXNAM *EQ *BLANKS')
+* Bepalen volgnr COBBST
+Execute Subroutine(AVLG127)
+* Leegmaken velden specifiek voor extra cards
+Change Field(#COBHSA #COBHSN #COBPSC #COBCTY #COBEMP #COBTLM #COBIBW #COBIGB #COBVBD #COBGWL #COBEMA #COBHUS #COBWNA #COBWPO #COBWWS #COBWWP #COBREK #COBBAN #COBBIC #COBTLP #COBNAT #V_COBDTD #COBKTL #COBNIN #COGCTY #COBGPL #COBID #COBLNR #COBIPA #COBMHC #COBALI #COBNLP #COBAIN #COBIKO #COBOVP #COBTLW #V_COBDDT #COBDDT #COBWWS #V_COBDTA #COBANB) To(*NULL)
+* Velden vullen
+Change Field(#COBVRL) To(#CBXVRL)
+Change Field(#COBVVG) To(#CBXVVG)
+Change Field(#COBNAM) To(#CBXNAM)
+Change Field(#COBMNM) To(#CBXMNM)
+Change Field(#COBMVV) To(#CBXMVV)
+Change Field(#COBIID) To(#CBXIID)
+Change Field(#COBEPN) To(#CBXEPN)
+Change Field(#COBVZK) To(#CBXVZK)
+Case Of_Field(#CBXGSL)
+When Value_Is('= ''1''')
+Change Field(#COBGSL) To(M)
+When Value_Is('= ''2''')
+Change Field(#COBGSL) To(V)
+Otherwise
+Change Field(#COBGSL) To(O)
+Endcase
+Change Field(#COBMAS) To(#CBXMAS)
+Change Field(#COBCR1) To(#CBXCR1)
+Change Field(#COBSNR) To(#CBXSNR)
+Change Field(#COBVBG) To(#CBXVBG)
+* Geb.dat. via virtueel veld
+Use Builtin(CONVERTDATE) With_Args(#CBXDTG K H) To_Get(#V_COBGDT)
+Use Builtin(CHECKNUMERIC) With_Args(#V_COBGDT) To_Get(#V_COBDTG)
+* indicatie extra card
+Change Field(#COBIHE) To(E)
+* Nationaliteit
+If Cond('(#CBXNAT *EQ *BLANKS) *OR (#CBXNAT *EQ ''001'')')
+Change Field(#CONCTY) To(*BLANKS)
+Change Field(#COBNAT) To(#CBXNAT)
+Else
+If Cond('#CBXNAT *EQ #ISTCTY')
+Change Field(#CONCTY) To(*BLANKS)
+Change Field(#COBNAT) To(*BLANKS)
+Else
+Change Field(#CONCTY) To(#CBXNAT)
+Change Field(#COBNAT) To('''001''')
+Endif
+Endif
+* Verblijfsvergunning
+If Cond('#CBXVBG *EQ T')
+Change Field(#COBVBG) To(B)
+Else
+If Cond('#CBXVBG *EQ D')
+Change Field(#COBVBG) To(O)
+Else
+Change Field(#COBVBG) To(*BLANKS)
+Endif
+Endif
+If Cond('#CBXVED *NE *BLANKS')
+Use Builtin(CONVERTDATE) With_Args(#CBXVED K H) To_Get(#W_COBVDT)
+Use Builtin(CHECKNUMERIC) With_Args(#W_COBVDT) To_Get(#V_COBVDT)
+Endif
+Change Field(#COBEMA) To(#CBXEMA)
+* volgnummer van de hoofdkaart in veld COBVHC zetten
+Change Field(#COBVHC) To(#W_P05)
+* Record inserten in COBBST
+Execute Subroutine(INSCOB)
+* Indien fout dan loop verwerking extra cards verlaten
+If Cond('#EX_RETCD *EQ 1')
+Change Field(#EX_MSGID) To(POR0002)
+Change Field(#EX_MSGF) To(CVSMSGFDUT)
+Leave
+Endif
+Endselect
+Endroutine
+* =======================================================
+* Verwerken gegevens voor cardlevel additional services
+* =======================================================
+Subroutine Name(JSMCRDAS)
+Selectlist Named(#JSMCRDAS)
+Leave If('#IVZSGR *EQ *BLANKS')
+* Wegschrijven gegevens in Interface verzekering
+* Volgnummer van de hoofdkaart gebruiken
+Change Field(#COBVLG) To(#W_P05)
+Change Field(#IVPVLG) To(0)
+Change Field(#IVZIVW) To(N)
+If Cond('#IVZAUT *EQ Y')
+Change Field(#IVZAUT) To(J)
+Else
+Change Field(#IVZAUT) To(N)
+Endif
+If Cond('#IVZDAV *EQ Y')
+Change Field(#IVZDAV) To(J)
+Else
+Change Field(#IVZDAV) To(N)
+Endif
+* Record inserten in IVZBST
+Execute Subroutine(INSIVZ)
+* Indien fout dan loop verwerking add. services verlaten
+If Cond('#EX_RETCD *EQ 1')
+Change Field(#EX_MSGID) To(POR0002)
+Change Field(#EX_MSGF) To(CVSMSGFDUT)
+Leave
+Endif
+Endselect
+Endroutine
+* =======================================================
+* Verwerken gegevens voor accountlevel additional serv
+* =======================================================
+Subroutine Name(JSMADDSV)
+Change Field(#H_PRODID) To(*BLANKS)
+Change Field(#IVZCIN) To(*NULL)
+Selectlist Named(#JSMADDSV)
+Leave If('#IVZSGR *EQ *BLANKS')
+* Wegschrijven gegevens in Interface verzekering (alleen
+* indien servicegrp verschilt van vorig gelezen product)
+If Cond('#IVZSGR *NE #H_IVZSGR')
+* Volgnummer van de hoofdkaart gebruiken
+Change Field(#COBVLG) To(#W_P05)
+Change Field(#IVPVLG) To(0)
+If Cond('#IVZAUT *EQ Y')
+Change Field(#IVZAUT) To(J)
+Else
+Change Field(#IVZAUT) To(N)
+Endif
+If Cond('#IVZDAV *EQ Y')
+Change Field(#IVZDAV) To(J)
+Else
+Change Field(#IVZDAV) To(N)
+Endif
+Change Field(#IVZIVW) To(N)
+Use Builtin(CONVERTDATE) With_Args(#IVZDTS K J) To_Get(#W_IVZDTI)
+Use Builtin(CHECKNUMERIC) With_Args(#W_IVZDTI) To_Get(#IVZDTI)
+* Record inserten in IVZBST
+Execute Subroutine(INSIVZ)
+* Indien fout dan loop verwerking add. services verlaten
+If Cond('#EX_RETCD *EQ 1')
+Change Field(#EX_MSGID) To(POR0002)
+Change Field(#EX_MSGF) To(CVSMSGFDUT)
+Leave
+Endif
+Change Field(#H_IVZSGR) To(#IVZSGR)
+Endif
+* Wegschrijven gegevens in Interface verzekering persoon
+If Cond('#IVPNAM *NE *BLANKS')
+Change Field(#IVPVLG) To('#IVPVLG + 1')
+Case Of_Field(#IVPGSL)
+When Value_Is('= ''1''')
+Change Field(#IVPGSL) To(M)
+When Value_Is('= ''2''')
+Change Field(#IVPGSL) To(V)
+Otherwise
+Change Field(#IVPGSL) To(O)
+Endcase
+Use Builtin(CONVERTDATE) With_Args(#IVPGDT K J) To_Get(#W_IVPDTG)
+Use Builtin(CHECKNUMERIC) With_Args(#W_IVPDTG) To_Get(#IVPDTG)
+Execute Subroutine(INSIVP)
+* Indien fout dan loop verwerking verz. persoon verlaten
+If Cond('#EX_RETCD *EQ 1')
+Change Field(#EX_MSGID) To(POR0002)
+Change Field(#EX_MSGF) To(CVSMSGFDUT)
+Leave
+Endif
+Endif
+Endselect
+Endroutine
+* =======================================================
+* Bepalen volgnummer COBBST
+* =======================================================
+Subroutine Name(AVLG127)
+Change Field(#EX_COBPNM) To(#COBPNM)
+Change Field(#EX_COBRDT) To(#COBRDT)
+Change Field(#EX_COBRNR) To(#COBRNR)
+Exchange Fields(#EX_COBPNM #EX_COBRDT #EX_COBRNR)
+Call Process(*DIRECT) Function(AVLG127) Exit_Used(*NEXT) Menu_Used(*NEXT)
+Change Field(#COBVLG) To(#EX_COBVLG)
+Endroutine
+* =======================================================
+* Aanroepen van de functie KMOD108
+* =======================================================
+Subroutine Name(KMOD108)
+Change Field(#EX_QASPC) To(#COBWPO)
+Exchange Fields(#EX_QASPC #EX_QASHN #EX_QASHE)
+Call Process(*DIRECT) Function(KMOD108) Exit_Used(*NEXT) Menu_Used(*NEXT)
+Endroutine
+* =======================================================
+* Inserten record in COBBST
+* =======================================================
+Subroutine Name(INSCOB)
+Insert Fields(#GR_COBBST) To_File(COBBST) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+Change Field(#EX_RETCD) To(1)
+Endif
+Endroutine
+* =======================================================
+* Inserten record in IVZBST
+* =======================================================
+Subroutine Name(INSIVZ)
+Insert Fields(#GR_IVZBST) To_File(IVZBST) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+Change Field(#EX_RETCD) To(1)
+Endif
+Endroutine
+* =======================================================
+* Inserten record in IVPBST
+* =======================================================
+Subroutine Name(INSIVP)
+Insert Fields(#GR_IVPBST) To_File(IVPBST) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+Change Field(#EX_RETCD) To(1)
+Endif
+Endroutine
+* =======================================================
+* Opmaken telefoonnummer
+* =======================================================
+Subroutine Name(OPM_TEL) Parms(#W_TELNR)
+Change Field(#W_A15 #W_A02) To(*BLANKS)
+Change Field(#W_P02) To(*ZERO)
+Use Builtin(LEFT) With_Args(#W_TELNR Y) To_Get(#W_A15)
+
+* Behandel eerst eventuele landcode
+If Cond('(#W_FIRST1 *NE ''0'') *OR (#W_FIRST2 *EQ ''00'')')
+* Wel landcode aanwezig
+If Cond('(#W_FIRST2 *EQ ''31'') *OR (#W_FIRST2 *EQ ''32'') *OR (#W_FIRST2 *EQ ''49'')')
+* Nederlandse, belgische od duitse landcode => zet apart + 0 toevoegen aan rest
+Change Field(#W_A02) To(#W_FIRST2)
+Use Builtin(CONCAT) With_Args('0' #W_LAST13) To_Get(#W_A15)
+Else
+If Cond('(#W_FIRST4 *EQ ''0031'') *OR (#W_FIRST4 *EQ ''0032'') *OR (#W_FIRST4 *EQ ''0049'')')
+* Nederlandse, belgische of duitse landcode => zet apart + 0 toevoegen aan rest
+Substring Field(#W_A15 3 2) Into_Field(#W_A02)
+Use Builtin(CONCAT) With_Args('0' #W_LAST11) To_Get(#W_A15)
+Else
+* Buitenlandse landcode
+If Cond('#W_FIRST2 *EQ ''00''')
+* 00 weggooien
+Substring Field(#W_A15 3) Into_Field(#W_A15)
+Endif
+* + en streepje toevoegen. Verder niets meer aan doen
+Use Builtin(CONCAT) With_Args('+' #W_FIRST2 '-' #W_LAST13) To_Get(#W_A15)
+Change Field(#W_P02) To(99)
+Endif
+Endif
+Endif
+
+* Nog niets bepaald ? Waar draaien we ?
+If Cond('#W_P02 *EQ *ZERO')
+If Cond('#ISTCTY *EQ NL')
+* Controleer rest op Nederland
+Change Field(#W_P02) To(31)
+* Expliciet Nederlands landnummer opgegeven ? Maak leeg
+If Cond('#W_A02 *EQ ''31''')
+Change Field(#W_A02) To(*BLANK)
+Endif
+* Expliciet Belgisch landnummer opgegeven ?
+If Cond('#W_A02 *EQ ''32''')
+* Controleer rest op Belgie
+Change Field(#W_P02) To(32)
+Endif
+* Expliciet Duits landnummer opgegeven ?
+If Cond('#W_A02 *EQ ''49''')
+* Controleer rest op Duitsland
+Change Field(#W_P02) To(49)
+Endif
+Endif
+If Cond('#ISTCTY *EQ BE')
+* Controleer rest op Belgie
+Change Field(#W_P02) To(32)
+* Expliciet Belgisch landnummer opgegeven ? Maak leeg
+If Cond('#W_A02 *EQ ''32''')
+Change Field(#W_A02) To(*BLANK)
+Endif
+* Expliciet Duits landnummer opgegeven ?
+If Cond('#W_A02 *EQ ''49''')
+* Controleer rest op Duitsland
+Change Field(#W_P02) To(49)
+Endif
+* Expliciet Nederlands landnummer opgegeven ?
+If Cond('#W_A02 *EQ ''31''')
+* Controleer rest op Nederland
+Change Field(#W_P02) To(31)
+Endif
+Endif
+If Cond('#ISTCTY *EQ DE')
+* Controleer rest op Duitsland
+Change Field(#W_P02) To(49)
+* Expliciet Duits landnummer opgegeven ? Maak leeg
+If Cond('#W_A02 *EQ ''49''')
+Change Field(#W_A02) To(*BLANK)
+Endif
+* Expliciet Nederlands landnummer opgegeven ?
+If Cond('#W_A02 *EQ ''31''')
+* Controleer rest op Nederland
+Change Field(#W_P02) To(31)
+Endif
+* Expliciet Belgisch landnummer opgegeven ?
+If Cond('#W_A02 *EQ ''32''')
+* Controleer rest op Belgie
+Change Field(#W_P02) To(32)
+Endif
+Endif
+Endif
+
+* Verwerk Nederlands nummer exlusief landcode
+If Cond('#W_P02 *EQ 31')
+If Cond('#W_FIRST2 *EQ ''06''')
+* Mobielnummer
+Use Builtin(CONCAT) With_Args(#W_FIRST2 '-' #W_LAST13) To_Get(#W_A15)
+Else
+* Geen mobielnummer, check netnummer
+Fetch Fields(#NETNUM) From_File(NETTAB) With_Key(#W_FIRST3) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is(*OKAY)
+* 3-cijferig netnummer, op juiste plek een - tussenvoegen
+Use Builtin(CONCAT) With_Args(#W_FIRST3 '-' #W_LAST12) To_Get(#W_A15)
+Else
+If_Status Is(*NORECORD)
+* 4-cijferig netnummer, op juiste plek een - tussenvoegen
+Use Builtin(CONCAT) With_Args(#W_FIRST4 '-' #W_LAST11) To_Get(#W_A15)
+Else
+* Fout bij Fetch, aborten
+Change Field(#EX_RETCD) To(1)
+Change Field(#EX_MSGID) To(POR0001)
+Change Field(#EX_MSGF) To(CVSMSGFDUT)
+Return
+Endif
+Endif
+Endif
+Endif
+
+* Verwerk Belgisch nummer exlusief landcode
+If Cond('#W_P02 *EQ 32')
+If Cond('(#W_FIRST3 *EQ ''046'')')
+* Mobielnummer Telenet / GSM-R
+Use Builtin(CONCAT) With_Args(#W_FIRST5 '-' #W_LAST10) To_Get(#W_A15)
+Else
+If Cond('(#W_FIRST3 *EQ ''047'') *OR (#W_FIRST3 *EQ ''048'') *OR (#W_FIRST3 *EQ ''049'')')
+* Mobielnummer Proximuse / BASE / Mobistar etc.
+Use Builtin(CONCAT) With_Args(#W_FIRST4 '-' #W_LAST11) To_Get(#W_A15)
+Else
+* Geen mobielnummer, check netnummer
+Fetch Fields(#NETNUM) From_File(NETTAB) With_Key(#W_FIRST2) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is(*OKAY)
+* 2-cijferig netnummer, op juiste plek een - tussenvoegen
+Use Builtin(CONCAT) With_Args(#W_FIRST2 '-' #W_LAST13) To_Get(#W_A15)
+Else
+If_Status Is(*NORECORD)
+* 3-cijferig netnummer, op juiste plek een - tussenvoegen
+Use Builtin(CONCAT) With_Args(#W_FIRST3 '-' #W_LAST12) To_Get(#W_A15)
+Else
+* Fout bij Fetch, aborten
+Change Field(#EX_RETCD) To(1)
+Change Field(#EX_MSGID) To(POR0001)
+Change Field(#EX_MSGF) To(CVSMSGFDUT)
+Return
+Endif
+Endif
+Endif
+Endif
+Endif
+
+* Verwerk Duits nummer exlusief landcode
+If Cond('#W_P02 *EQ 49')
+Use Builtin(CONCAT) With_Args(#W_FIRST5 '-' #W_LAST10) To_Get(#W_A15)
+Endif
+
+
+* Nog een landcode te verwerken ?
+If Cond('#W_A02 *NE *BLANK')
+* Sloop de voorloopnul uit netnummer weg
+Substring Field(#W_A15 2) Into_Field(#W_A15)
+* Voeg + voor en - tussen landcode en de rest
+Use Builtin(CONCAT) With_Args('+' #W_A02 '-' #W_A15) To_Get(#W_A15)
+Endif
+
+Change Field(#W_TELNR) To(#W_A15)
+Endroutine
+* =======================================================
+* Initialisatie programma
+* =======================================================
+Subroutine Name(INIT)
+* Indicatie velden cobrander interface op N
+Change Field(#COBICT #COBITV #COBIVW) To(N)
+* Overige initialisaties
+Change Field(#EX_RETCD) To(0)
+Change Field(#EX_MSGID #EX_MSGF) To(*BLANKS)
+Change Field(#CDSPRM) To(WEB)
+* Ophalen landcode Entra uit Institution tabel
+Fetch Fields(#ISTCTY) From_File(ISTTAB) With_Key(*DTA161003PARTITIE) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+Change Field(#EX_RETCD) To(1)
+Change Field(#EX_MSGID) To(POR0001)
+Change Field(#EX_MSGF) To(CVSMSGFDUT)
+Endif
+Endroutine

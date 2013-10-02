@@ -1,0 +1,485 @@
+* =======================================================
+* ============= © VSB International B.V. ================
+* =======================================================
+* Naam proces .....: MOBC1
+* Naam functie ....: MOBC100
+* Titel ...........: Process request for mobile card
+*                    Gemalto
+* Doel ............: Lezen en verwerken requests voor
+*                    Gemalto
+* Creatiedatum/tijd: 19/07/13 14:28:51
+* Bedrijf .........: Sogeti Nederland B.V.
+* Programmeur .....: ONMSTEEN   Marcel Steenstra
+* LANSA release ...: 10.0
+* =======================================================
+Function Options(*DIRECT *DEFERWRITE *MLOPTIMIZE)
+* =======================================================
+* Tag: Definities
+* =======================================================
+Define Field(#JSMSTP) Type(*CHAR) Length(5)
+Define Field(#JSMOPN) Type(*CHAR) Length(1)
+Define Field(#JSMTRACE) Type(*CHAR) Length(1)
+Define Field(#JSMLOAD) Type(*CHAR) Length(1) Default(N)
+Define Field(#JSMCON) Type(*CHAR) Length(1)
+Define Field(#JSMOUTPRT) Type(*CHAR) Length(4)
+Define Field(#GPMSRC) Reffld(#PARVA1)
+Define Field(#GPMOID) Reffld(#PARVA1)
+Define Field(#GPMDES) Reffld(#PARVA1)
+Define Field(#GPMMSV) Reffld(#PARVA1)
+Define Field(#GPMTYP) Type(*CHAR) Length(80)
+Define Field(#GPMTRI) Type(*CHAR) Length(15)
+Define Field(#GPMOPR) Type(*DEC) Length(3) Decimals(0)
+Define Field(#GPMSTS) Type(*CHAR) Length(30)
+Define Field(#GPMEXT) Type(*CHAR) Length(3)
+Define Field(#GPMDVO) Type(*CHAR) Length(5)
+Define Field(#GPMSCT) Type(*CHAR) Length(50)
+* =======================================================
+* Tag: Overrides
+* =======================================================
+
+* =======================================================
+* Tag: Condities
+* =======================================================
+
+* =======================================================
+* Tag: Groepen
+* =======================================================
+Group_By Name(#GR_MQCTAB) Fields(#MQMOUCH #MQMOUTQ #MQMOUMN #MQMOUPT)
+Group_By Name(#GR_RMCBST) Fields(#RMCSEI #RMCMTN #RMCSRF #RMCSQF #ACCNUM #RMCCMC #RMCEIC #RMCCTM #RMCRQT #PVAIDN #RMCRES #RMCELA #RMCRDA)
+Group_By Name(#GR_PSETAB) Fields(#PSESID)
+Group_By Name(#GR_HEADER) Fields(#GPMDES #GPMMSV #GPMTYP #GPMSRC #GPMTRI)
+Group_By Name(#GR_ELC) Fields(#RMCSEI #RMCMTN #PSESID #RMCSQF #GPMEXT)
+Group_By Name(#GR_DCL) Fields(#GPMOID #RMCSRF #PSESID #RMCSQF #RMCSEI #RMCMTN)
+Group_By Name(#GR_DEL) Fields(#GPMOID #RMCSRF #GPMOPR)
+Group_By Name(#GR_GET) Fields(#GPMOID #RMCSRF)
+Group_By Name(#GR_END) Fields(#GPMOID #RMCSRF #GPMOPR #GPMSTS #RMCELA #RMCRDA)
+Group_By Name(#GR_TRM) Fields(#GPMOID #RMCSRF)
+Group_By Name(#GR_DPL) Fields(#GPMOID #RMCSRF #GPMDVO #GPMSCT)
+* =======================================================
+* Tag: Working Lists en Browse Lists
+* =======================================================
+
+* =======================================================
+* Tag: Main line: MOBC100
+* =======================================================
+Execute Subroutine(INIT)
+
+Dowhile Cond('#JSMSTP = START')
+Execute Subroutine(SERVLOAD)
+* Check of er nog te verwerken requests aanwezig zijn
+Select Fields(#GR_RMCBST) From_File(RMCBST1) Io_Error(*NEXT) Val_Error(*NEXT)
+* Verwerk request
+Execute Subroutine(VERW_REQ)
+* Commit per verwerkt record
+Commit
+Endselect
+* Lees DTAARA MOBC100
+Execute Subroutine(CHK_DTAARA)
+If Cond('#JSMSTP *EQ START')
+* 5 seconden wachten
+Exec_Os400 Command('DLYJOB DLY(5)')
+Endif
+Endwhile
+
+Execute Subroutine(CLOSE)
+* Standaard beëindiging programma
+Return
+* =======================================================
+* Initialisatie programma
+* =======================================================
+Subroutine Name(INIT)
+Change Field(#JSMSVR) To(#EX_JSMSVR)
+* Lees DTAARA MOBC100
+Execute Subroutine(CHK_DTAARA)
+If Cond('#JSMSTP *EQ STOP')
+Return
+Endif
+Change Field(#JSMCON #JSMOPN) To(N)
+* Lees benodigde variabelen uit MQCTAB
+Fetch Fields(#GR_MQCTAB) From_File(MQCTAB) With_Key(*FUNCTION) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+Execute Subroutine(ABORT) With_Parms(2)
+Endif
+Use Builtin(NUMERIC_STRING) With_Args(#MQMOUPT) To_Get(#JSMOUTPRT)
+* Openen Java Service Manager
+Use Builtin(JSM_OPEN) With_Args(#JSMSVR) To_Get(#JSMSTS #JSMMSG)
+If Cond('#JSMSTS *EQ OK')
+Change Field(#JSMOPN) To(J)
+Else
+Execute Subroutine(ABORT) With_Parms(3)
+Endif
+* Lees ICS OID uit PARTAB
+Fetch Fields(#PARVA1) From_File(PARTAB) With_Key(*FUNCTION 2) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is(*OKAY)
+Change Field(#GPMOID) To(#PARVA1)
+Else
+Execute Subroutine(ABORT) With_Parms(4)
+Endif
+* Lees Header ICS OID uit PARTAB
+Fetch Fields(#PARVA1) From_File(PARTAB) With_Key(*FUNCTION 5) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is(*OKAY)
+Change Field(#GPMSRC) To(#PARVA1)
+Else
+Execute Subroutine(ABORT) With_Parms(4)
+Endif
+* Lees Gemalto OID uit PARTAB
+Fetch Fields(#PARVA1) From_File(PARTAB) With_Key(*FUNCTION 3) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is(*OKAY)
+Change Field(#GPMDES) To(#PARVA1)
+Else
+Execute Subroutine(ABORT) With_Parms(4)
+Endif
+* Lees Message version uit PARTAB
+Fetch Fields(#PARVA1) From_File(PARTAB) With_Key(*FUNCTION 4) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is(*OKAY)
+Change Field(#GPMMSV) To(#PARVA1)
+Else
+Execute Subroutine(ABORT) With_Parms(4)
+Endif
+Endroutine
+* =======================================================
+* Controleer dataara
+* =======================================================
+Subroutine Name(CHK_DTAARA)
+Use Builtin(GET_CHAR_AREA) With_Args(MOBC100) To_Get(#JSMSTP)
+Case Of_Field(#JSMSTP)
+When Value_Is('= START')
+When Value_Is('= STOP')
+Otherwise
+Execute Subroutine(ABORT) With_Parms(1)
+Endcase
+Endroutine
+* =======================================================
+* XMLBindQueueService met/zonder trace
+* =======================================================
+Subroutine Name(SERVLOAD)
+* Ophalen trace aan/uit uit PARTAB
+Fetch Fields(#PARVA1) From_File(PARTAB) With_Key(*FUNCTION 1) Io_Error(*NEXT) Val_Error(*NEXT)
+If Cond('#PARVA1 *EQ *BLANKS')
+Change Field(#PARVA1) To(N)
+Endif
+If Cond('#PARVA1 *NE #JSMTRACE')
+Change Field(#JSMTRACE) To(#PARVA1)
+If Cond('#JSMCON *EQ J')
+* Close
+Change Field(#JSMCMD) To(CLOSE)
+Execute Subroutine(JSMCOMMAND)
+Change Field(#JSMCON) To(N)
+Endif
+
+If Cond('#JSMLOAD *EQ J')
+* Service unload
+Change Field(#JSMCMD) To(SERVICE_UNLOAD)
+Execute Subroutine(JSMCOMMAND)
+Change Field(#JSMLOAD) To(N)
+Endif
+* Service load JMSXMLBindService
+Change Field(#JSMCMD) To('SERVICE_LOAD SERVICE(JMSXMLBINDSERVICE)')
+Case Of_Field(#JSMTRACE)
+When Value_Is('= J')
+Use Builtin(BCONCAT) With_Args(#JSMCMD 'TRACE_NAME(*FUNCTION) TRACE (*YES)') To_Get(#JSMCMD)
+When Value_Is('= E')
+Use Builtin(BCONCAT) With_Args(#JSMCMD 'TRACE_NAME(*FUNCTION) TRACE (*ERROR)') To_Get(#JSMCMD)
+Otherwise
+Endcase
+Execute Subroutine(JSMCOMMAND)
+Change Field(#JSMLOAD) To(J)
+* Connect
+Change Field(#JSMCMD) To('''CONNECT VENDOR(MQSERIES) HOST(LOCALHOST) PORT(''')
+Use Builtin(TCONCAT) With_Args(#JSMCMD #JSMOUTPRT ') QUEUE(' #MQMOUTQ ') CHANNEL(') To_Get(#JSMCMD)
+Use Builtin(TCONCAT) With_Args(#JSMCMD #MQMOUCH ') QUEUE-MANAGER(' #MQMOUMN ')') To_Get(#JSMCMD)
+Execute Subroutine(JSMCOMMAND)
+Change Field(#JSMCON) To(J)
+Endif
+Endroutine
+* =======================================================
+* Verwerk request
+* =======================================================
+Subroutine Name(VERW_REQ)
+Case Of_Field(#RMCRQT)
+When Value_Is('= ELC')
+Change Field(#W_P09) To(*AUTONUM09ELC)
+Change Field(#GPMTRI) To(ICSELC)
+Change Field(#GPMEXT) To('''yes''')
+Substring Field(#W_P09) Into_Field(#GPMTRI 7)
+Change Field(#GPMTYP) To('''CheckGlobalEligibilityRequest''')
+* Service id
+Execute Subroutine(SERVID)
+Exchange Fields(#GR_ELC)
+When Value_Is('= CEL')
+Change Field(#W_P09) To(*AUTONUM09CEL)
+Change Field(#GPMTRI) To(ICSCEL)
+Change Field(#GPMEXT) To(*BLANKS)
+Substring Field(#W_P09) Into_Field(#GPMTRI 7)
+Change Field(#GPMTYP) To('''CheckGlobalEligibilityRequest''')
+* Service id
+Execute Subroutine(SERVID)
+Exchange Fields(#GR_ELC)
+When Value_Is('= ELI')
+Change Field(#W_P09) To(*AUTONUM09ELI)
+Change Field(#GPMTRI) To(ICSELI)
+Change Field(#GPMEXT) To('''yes''')
+Substring Field(#W_P09) Into_Field(#GPMTRI 7)
+Change Field(#GPMTYP) To('''CheckGlobalEligibilityRequest''')
+* Service id
+Execute Subroutine(SERVID)
+Exchange Fields(#GR_ELC)
+When Value_Is('= DCL')
+Change Field(#W_P09) To(*AUTONUM09DCL)
+Change Field(#GPMTRI) To(ICSDCL)
+Substring Field(#W_P09) Into_Field(#GPMTRI 7)
+Change Field(#GPMTYP) To('''DeclareServiceInstanceReferenceRequest''')
+* Service id
+Execute Subroutine(SERVID)
+* Service reference
+Execute Subroutine(SERREF)
+Exchange Fields(#GR_DCL)
+When Value_Is('= DEL')
+Change Field(#W_P09) To(*AUTONUM09DEL)
+Change Field(#GPMTRI) To(ICSDEL)
+Substring Field(#W_P09) Into_Field(#GPMTRI 7)
+Change Field(#GPMTYP) To('''HandleStartServiceStateChangeNotificationRequest''')
+Change Field(#GPMOPR) To(6)
+Exchange Fields(#GR_DEL)
+When Value_Is('= SHD')
+Change Field(#W_P09) To(*AUTONUM09SHD)
+Change Field(#GPMTRI) To(ICSSHD)
+Substring Field(#W_P09) Into_Field(#GPMTRI 7)
+Change Field(#GPMTYP) To('''HandleStartServiceStateChangeNotificationRequest''')
+Change Field(#GPMOPR) To(103)
+Exchange Fields(#GR_DEL)
+When Value_Is('= TRM')
+Change Field(#W_P09) To(*AUTONUM09TRM)
+Change Field(#GPMTRI) To(ICSTRM)
+Substring Field(#W_P09) Into_Field(#GPMTRI 7)
+Change Field(#GPMTYP) To('''TerminateServiceRequest''')
+Exchange Fields(#GR_TRM)
+When Value_Is('= GET')
+Change Field(#W_P09) To(*AUTONUM09GET)
+Change Field(#GPMTRI) To(ICSGET)
+Substring Field(#W_P09) Into_Field(#GPMTRI 7)
+Change Field(#GPMTYP) To('''GetServiceInstanceReferenceDescriptorRequest''')
+Exchange Fields(#GR_GET)
+When Value_Is('= END')
+Change Field(#W_P09) To(*AUTONUM09END)
+Change Field(#GPMTRI) To(ICSEND)
+Substring Field(#W_P09) Into_Field(#GPMTRI 7)
+Change Field(#GPMTYP) To('''HandleEndServiceStateChangeNotificationRequest''')
+Change Field(#GPMOPR) To(6)
+Case Of_Field(#RMCRES)
+When Value_Is('= OK')
+Change Field(#GPMSTS) To('''EXECUTED_SUCCESS''')
+When Value_Is('= OW')
+Change Field(#GPMSTS) To('''EXECUTED_WITHWARNING''')
+When Value_Is('= ER')
+Change Field(#GPMSTS) To('''FAILED''')
+When Value_Is('= EX')
+Change Field(#GPMSTS) To('''EXPIRED''')
+Endcase
+Exchange Fields(#GR_END)
+When Value_Is('= EHD')
+Change Field(#W_P09) To(*AUTONUM09EHD)
+Change Field(#GPMTRI) To(ICSEHD)
+Substring Field(#W_P09) Into_Field(#GPMTRI 7)
+Change Field(#GPMTYP) To('''HandleEndServiceStateChangeNotificationRequest''')
+Change Field(#GPMOPR) To(103)
+Case Of_Field(#RMCRES)
+When Value_Is('= OK')
+Change Field(#GPMSTS) To('''EXECUTED_SUCCESS''')
+When Value_Is('= OW')
+Change Field(#GPMSTS) To('''EXECUTED_WITHWARNING''')
+When Value_Is('= ER')
+Change Field(#GPMSTS) To('''FAILED''')
+When Value_Is('= EX')
+Change Field(#GPMSTS) To('''EXPIRED''')
+Endcase
+Exchange Fields(#GR_END)
+When Value_Is('= DPL')
+Change Field(#W_P09) To(*AUTONUM09DPL)
+Change Field(#GPMTRI) To(ICSDPL)
+Substring Field(#W_P09) Into_Field(#GPMTRI 7)
+Change Field(#GPMTYP) To('''DeployServiceRequest''')
+Change Field(#GPMDVO) To('''true''')
+Change Field(#GPMSCT) To('''gpm:InstallServiceCommandType''')
+Exchange Fields(#GR_DPL)
+Endcase
+Exchange Fields(#GR_HEADER #RMCRQT)
+* Aanroepen functie Send XML for mobile card Gemalto
+Call Process(*DIRECT) Function(MOBC101) Pgm_Exch(*YES) If_Error(*NEXT)
+If Cond('#JSMSTS *EQ OK')
+* Bijwerken RMCBST
+Execute Subroutine(UPD_RMCBST)
+* Bijwerken MCCBST bij een declare service
+* instance reference request
+If Cond('#RMCRQT *EQ DCL')
+Execute Subroutine(UPD_MCCBST)
+Endif
+* Aanmaken termination request na een delete
+If Cond('#RMCRQT *EQ DEL')
+Execute Subroutine(INS_RMCBST) With_Parms(TRM)
+Endif
+* Aanmaken deploy request na een start handle deploy
+If Cond('#RMCRQT *EQ SHD')
+Execute Subroutine(INS_RMCBST) With_Parms(DPL)
+Endif
+Else
+Execute Subroutine(ABORT) With_Parms(5)
+Endif
+Endroutine
+* =======================================================
+* Bijwerken RMCBST
+* =======================================================
+Subroutine Name(UPD_RMCBST)
+Change Field(#RMCDTV) To(*YYYYMMDDDYNAMIC)
+Change Field(#RMCTMV) To(*TIME)
+Change Field(#RMCMID) To(#GPMTRI)
+Change Field(#RMCRES #RMCELA #RMCRDA #RMCMSA) To(*BLANKS)
+Update Fields(#RMCSRF #RMCDTV #RMCTMV #RMCMID #RMCRES #RMCELA #RMCRDA #RMCMSA) In_File(RMCBST1) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+Execute Subroutine(ABORT) With_Parms(6)
+Endif
+Endroutine
+* =======================================================
+* Bijwerken MCCBST
+* =======================================================
+Subroutine Name(UPD_MCCBST)
+* Service reference bijwerken
+Change Field(#MCCSRF) To(#RMCSRF)
+Update Fields(#MCCSRF) In_File(MCCBST1) With_Key(#RMCCMC) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+Execute Subroutine(ABORT) With_Parms(7)
+Endif
+Endroutine
+* =======================================================
+* Aanmaken termination/deploy request in RMCBST
+* =======================================================
+Subroutine Name(INS_RMCBST) Parms(#RMCRQT)
+Change Field(#RMCDTQ) To(*YYYYMMDDDYNAMIC)
+Change Field(#RMCTMQ) To(*TIME)
+Insert Fields(#RMCSEI #RMCMTN #RMCSRF #RMCSQF #ACCNUM #RMCCMC #RMCEIC #RMCCTM #RMCRQT #RMCDTQ #RMCTMQ) To_File(RMCBST) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+Execute Subroutine(ABORT) With_Parms(8)
+Endif
+Endroutine
+* =======================================================
+* Bepalen service id
+* =======================================================
+Subroutine Name(SERVID)
+* Bepaal product (alleen als cardkey bekend)
+If Cond('(#RMCCMC *NE *ZERO)')
+Execute Subroutine(APIEKI) With_Parms(#RMCCMC)
+Endif
+* Lees stuurtabel Producten per SE issuer
+Fetch Fields(#GR_PSETAB) From_File(PSETAB) With_Key(#RMCSEI #PVAIDN) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+Execute Subroutine(ABORT) With_Parms(9)
+Endif
+Endroutine
+* =======================================================
+* Bepalen service reference
+* =======================================================
+Subroutine Name(SERREF)
+* Bepaal embossercode
+Fetch Fields(#ACTEMB) From_File(ACTTAB) With_Key(#RMCCTM) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+Execute Subroutine(ABORT) With_Parms(10)
+Endif
+Change Field(#RMCSRF) To(#ACTEMB)
+Change Field(#W_P08) To(*YYYYMMDDDYNAMIC)
+Substring Field(#W_P08 1 8) Into_Field(#RMCSRF 4)
+Change Field(#W_P07) To(*AUTONUM07SERREF)
+Substring Field(#W_P07 1 7) Into_Field(#RMCSRF 12)
+Endroutine
+* =======================================================
+* Call Api Get Card Information
+* =======================================================
+Subroutine Name(APIEKI) Parms((#XKICRDKEY *RECEIVED))
+Change Field(#EX_APISET) To(A)
+Change Field(#EX_APIOCD) To(RC)
+Change Field(#EX_APIMSG) To(J)
+Exchange Fields(#XKICRDKEY #EX_APISET #EX_APIOCD #EX_APIMSG)
+Call Pgm(APIEKI) Exit_Used(*NEXT) Menu_Used(*NEXT) Pgm_Exch(*YES) If_Error(*NEXT)
+If Cond('#EX_APIRTC *EQ OK')
+Change Field(#PVAIDN) To(#XKIATRKID)
+Else
+Execute Subroutine(ABORT) With_Parms(11)
+Endif
+Endroutine
+* =======================================================
+* Uitvoeren JSM Command
+* =======================================================
+Subroutine Name(JSMCOMMAND)
+Use Builtin(JSM_COMMAND) With_Args(#JSMCMD) To_Get(#JSMSTS #JSMMSG)
+If Cond('#JSMSTS *NE OK')
+Execute Subroutine(ABORT) With_Parms(12)
+Endif
+Endroutine
+* =======================================================
+* Abort
+* =======================================================
+Subroutine Name(ABORT) Parms((#W_P02 *RECEIVED))
+Case Of_Field(#W_P02)
+When Value_Is('= 1')
+Message Msgid(MQM0006) Msgf(CVSMSGFDUT) Msgdta(MOBC100)
+When Value_Is('= 2')
+Message Msgid(ALG0033) Msgf(CVSMSGFDUT) Msgdta(MQCTAB)
+When Value_Is('= 3')
+Message Msgid(JSM0003) Msgf(CVSMSGFDUT) Msgdta(#JSMSTS)
+Message Msgid(JSM0012) Msgf(CVSMSGFDUT) Msgdta(#JSMMSG)
+When Value_Is('= 4')
+Message Msgid(ALG0033) Msgf(CVSMSGFDUT) Msgdta(PARTAB)
+When Value_Is('= 5')
+Message Msgid(JSM0004) Msgf(CVSMSGFDUT) Msgdta(#JSMSTS)
+Message Msgid(JSM0012) Msgf(CVSMSGFDUT) Msgdta(#JSMMSG)
+When Value_Is('= 6')
+Message Msgid(ALG0045) Msgf(CVSMSGFDUT) Msgdta(RMCBST)
+When Value_Is('= 7')
+Message Msgid(ALG0045) Msgf(CVSMSGFDUT) Msgdta(MCCBST)
+When Value_Is('= 8')
+Message Msgid(ALG0032) Msgf(CVSMSGFDUT) Msgdta(RMCBST)
+When Value_Is('= 9')
+Message Msgid(ALG0033) Msgf(CVSMSGFDUT) Msgdta(PSETAB)
+When Value_Is('= 10')
+Message Msgid(ALG0033) Msgf(CVSMSGFDUT) Msgdta(ACTTAB)
+When Value_Is('= 11')
+Message Msgid(GEN0129) Msgf(CVSMSGFDUT) Msgdta(APIEKI)
+When Value_Is('= 12')
+Message Msgid(JSM0004) Msgf(CVSMSGFDUT) Msgdta(#JSMSTS)
+Message Msgid(JSM0012) Msgf(CVSMSGFDUT) Msgdta(#JSMMSG)
+Otherwise
+Message Msgtxt('Onbekende fout opgetreden')
+Endcase
+Execute Subroutine(CLOSE)
+Rollback
+Abort
+Endroutine
+* =======================================================
+* Sluiten Java Service Manager + Queue's
+* =======================================================
+Subroutine Name(CLOSE)
+If Cond('#JSMCON *EQ J')
+* Sluiten MQ connectie
+Change Field(#JSMCMD) To(CLOSE)
+Use Builtin(JSM_COMMAND) With_Args(#JSMCMD) To_Get(#JSMSTS #JSMMSG)
+If Cond('#JSMSTS *NE OK')
+Message Msgid(JSM0004) Msgf(CVSMSGFDUT) Msgdta(#JSMSTS)
+Message Msgid(JSM0012) Msgf(CVSMSGFDUT) Msgdta(#JSMMSG)
+Endif
+Endif
+If Cond('#JSMLOAD *EQ J')
+* Service unload
+Change Field(#JSMCMD) To(SERVICE_UNLOAD)
+Use Builtin(JSM_COMMAND) With_Args(#JSMCMD) To_Get(#JSMSTS #JSMMSG)
+If Cond('#JSMSTS *NE OK')
+Message Msgid(JSM0004) Msgf(CVSMSGFDUT) Msgdta(#JSMSTS)
+Message Msgid(JSM0012) Msgf(CVSMSGFDUT) Msgdta(#JSMMSG)
+Endif
+Endif
+If Cond('#JSMOPN *EQ J')
+* Sluiten JSM connectie
+Use Builtin(JSM_CLOSE) To_Get(#JSMSTS #JSMMSG)
+If Cond('#JSMSTS *NE OK')
+Message Msgid(JSM0005) Msgf(CVSMSGFDUT) Msgdta(#JSMSTS)
+Endif
+Endif
+Endroutine

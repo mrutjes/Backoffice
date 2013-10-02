@@ -1,0 +1,89 @@
+* =======================================================
+* Copyright .....: (C) = Visa Card Services
+* Process .......: AMOD2
+* Function ......: AMOD200
+* Type ..........: Algemene module
+* Created by ....: ODGWORP Gert van der Worp
+* Created on ....: 14/02/13 15:06:00
+* Description ...:
+
+* Deze functie controleert de IBAN op geldigheid
+* Is qua functionaliteit gelijk aan de KLCR124.
+
+* Parameters in:  IBAN          EX_KBWIBA    (A 34)
+
+* Parameters uit: Return code   EX_RETCD     (P 3)
+*                    0 = OK
+*                    1 = Check digit niet OK
+*                    2 = ISO Land Code niet gevonden
+*                    3 = Landcode niet in PARTAB
+*                    4 = Layout Rekening-identificatie
+*                        fout
+*                    5 = Landcode niet juist voor
+*                        institutie
+* =======================================================
+Function Options(*DIRECT *NOMESSAGES *LIGHTUSAGE *MLOPTIMISE)
+* =======================================================
+* Groepen
+* =======================================================
+
+* =======================================================
+* Definities
+* =======================================================
+
+* =======================================================
+* Conditions
+* =======================================================
+
+* =======================================================
+* Main Line : AMOD200
+* =======================================================
+Execute Subroutine(INIT)
+If Cond('#KBWIBA *NE *BLANKS')
+* Algemene IBAN check voor alle instituties via BIF113
+Execute Subroutine(BIF113)
+* Per institutie nog wat extra validaties
+If Cond('#EX_RETCD *EQ *ZERO')
+Execute Subroutine(CHECK)
+Endif
+Endif
+Exchange Fields(#EX_RETCD)
+Return
+* =======================================================
+* Algemene validatie op geldig IBAN nummer via BIF113
+* =======================================================
+Subroutine Name(BIF113)
+Use Builtin(UD_IBAN_CHK) With_Args(#KBWIBA) To_Get(#EX_RETCD)
+Endroutine
+* =======================================================
+* Extra validatie op landcode per institutie
+* =======================================================
+Subroutine Name(CHECK)
+Substring Field(#KBWIBA 1 2) Into_Field(#W_A02)
+Case Of_Field(#ISTICD)
+When Value_Is('= NLD')
+* eerste 2 posities moeten NL zijn
+If Cond('#W_A02 *NE NL')
+Change Field(#EX_RETCD) To(5)
+Endif
+When Value_Is('= BEL')
+* eerste 2 posities moeten BE zijn
+If Cond('#W_A02 *NE BE')
+Change Field(#EX_RETCD) To(5)
+Endif
+When Value_Is('= DEU')
+* eerste 2 posities moeten DE zijn
+If Cond('#W_A02 *NE DE')
+Change Field(#EX_RETCD) To(5)
+Endif
+Endcase
+Endroutine
+* =======================================================
+* Init
+* =======================================================
+Subroutine Name(INIT)
+Change Field(#EX_RETCD) To(*ZERO)
+* Links uitlijnen en eventuele spaties verwijderen
+Use Builtin(LEFT) With_Args(#EX_KBWIBA Y) To_Get(#KBWIBA)
+Change Field(#ISTICD) To(*DTA161003PARTITIE)
+Endroutine

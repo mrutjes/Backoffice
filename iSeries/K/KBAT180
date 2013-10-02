@@ -1,0 +1,453 @@
+* =======================================================
+* ============= © VSB International B.V. ================
+* =======================================================
+* Naam proces .....: KBAT1
+* Naam functie ....: KBAT180
+* Titel ...........: Process Pin, Login name and Service
+* Doel ............: Verwerken van tijdelijk opgeslagen
+*                    gegevens naar EntraCard.
+* Creatiedatum/tijd: 24/01/2011 08:33:49
+* Bedrijf .........: Sogeti Nederland B.V.
+* Programmeur .....: ODJBIJL Jan van der Bijl
+* LANSA release ...: 11.5
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODJBIJL   Jan van der Bijl
+* Datum/Tijd ..: 16/01/2012 10:02:41
+* Aanpassing ..: MUST CR31007529 - Aanpassen encryptie
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODRKNOOPS Robbie Knoops
+* Datum/Tijd ..: 26/07/2012 10:21:26
+* Aanpassing ..: MUST CR31008562 - Ignore error 'Invalid
+*                account agreement status'
+*                MUST CR31008282 - Only call module
+*                Delete user when Login name is filled
+* =======================================================
+* Bedrijf .....: International card Services B.V.
+* Auteur ......: ODABERG Allie van den Berg
+* Datum/Tijd ..: 24/07/2013 10:21:26
+* Aanpassing ..: MUST CR31010361 - KBAT180 klapt als
+*                ongeldige encrypted pin wordt aangeboden.
+*                Aanpassen HEXTOBIN
+* =======================================================
+* Bedrijf .....: ICS
+* Auteur ......: ODJVISSC   John Visscher
+* Datum/Tijd ..: 25/07/2013 10:02:41
+* Aanpassing ..: MUST CR31008410
+*                Pin laten opslaan in Entra als pin offset
+* =======================================================
+Function Options(*DIRECT *DEFERWRITE *MLOPTIMIZE)
+Exchange Fields(#EX_FNCKEY) Option(*ALWAYS)
+* =======================================================
+* Tag: Definities
+* =======================================================
+Define Field(#O_AESKEY1) Reffld(#W_A64) To_Overlay(#W_A128)
+Define Field(#O_AESKEY2) Reffld(#W_A64) To_Overlay(#W_A128 65)
+
+Define Field(#W_ENCSTR) Type(*CHAR) Length(64)
+Define Field(#W_CLRSTR) Type(*CHAR) Length(64)
+Define Field(#W_CLRST1) Type(*CHAR) Length(64)
+Define Field(#W_CLRST2) Type(*CHAR) Length(64)
+Define Field(#W_CLRHX1) Type(*CHAR) Length(16)
+Define Field(#W_CLRHX2) Type(*CHAR) Length(16)
+* =======================================================
+* Tag: Overrides
+* =======================================================
+
+* =======================================================
+* Tag: Condities
+* =======================================================
+
+* =======================================================
+* Tag: Groepen
+* =======================================================
+Group_By Name(#GR_TSPBST) Fields(#PCDKEY #TSPPEP #LOGNAM #TSPKNR)
+Group_By Name(#GR_TSSBST) Fields(#PCDKEY #ADSGRP)
+Group_By Name(#GR_PCDBST) Fields(#PCDKEY #RELIDN #PVAIDN #KLPVLG)
+Group_By Name(#GR_KLPBST) Fields(#RELIDN #PVAIDN #KLPVLG #KLPUCN #STSCOD)
+Group_By Name(#GR_KPSBST) Fields(#RELIDN #PVAIDN #KLPVLG #KPSDTT #KPSTDT)
+* =======================================================
+* Tag: Working Lists en Browse Lists
+* =======================================================
+
+* =======================================================
+* Tag: Main line: KBAT180
+* =======================================================
+Execute Subroutine(INIT)
+
+Execute Subroutine(GET_CLRKEY)
+
+Select Fields(#GR_TSPBST) From_File(TSPBST) Io_Error(*NEXT) Val_Error(*NEXT)
+Execute Subroutine(CURR_STS)
+Continue If('#W_IND *EQ N')
+
+Execute Subroutine(APIEKI)
+Execute Subroutine(ADD_SERV)
+
+If Cond('#TSPPEP *NE *BLANKS')
+Execute Subroutine(VRW_PINCD)
+Endif
+
+If Cond('#LOGNAM *NE *BLANKS')
+Execute Subroutine(ADD_CSTNUM)
+Execute Subroutine(UPD_STMWEB)
+Endif
+
+Execute Subroutine(DEL_TMPBST)
+Endselect
+* Standaard beëindiging programma
+Return
+* =======================================================
+* Initialisatie programma
+* =======================================================
+Subroutine Name(INIT)
+Fetch Fields(#PARVNU) From_File(PARTAB) With_Key(*FUNCTION 1) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+Execute Subroutine(RLLBCK) With_Parms(1)
+Endif
+If Cond('#PARVNU *GT *ZERO')
+Change Field(#W_P15) To('#PARVNU * -1')
+Else
+Change Field(#W_P15) To(#PARVNU)
+Endif
+Use Builtin(FINDDATE) With_Args(#YYYYMMDD #W_P15 J J) To_Get(#W_DATUM1)
+Endroutine
+* =======================================================
+* Bepalen van de key in clear hexadecimal format
+* =======================================================
+Subroutine Name(GET_CLRKEY)
+* Ophalen Network Profile Record
+Fetch Fields(#PARVA1) From_File(PARTAB) With_Key(PORB701 1) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is(*OKAY)
+Change Field(#UTNNWR) To(#PARVA1)
+Else
+Execute Subroutine(RLLBCK) With_Parms(1)
+Endif
+* Ophalen KEY voor decriptie uit DTAARA
+Use Builtin(GET_CHAR_AREA) With_Args(PODT200) To_Get(#W_A128)
+* Decrypt Numeric String (AES Key-1)
+Execute Subroutine(DECRYPT) With_Parms(#O_AESKEY1 #W_CLRST1)
+
+If Cond('(#O_AESKEY2 *NE *BLANKS)')
+* Decrypt Numeric String (AES Key-2), indien aanwezig
+Execute Subroutine(DECRYPT) With_Parms(#O_AESKEY2 #W_CLRST2)
+Endif
+* Clear numeric string 1 converteren naar hexadecimaal
+Execute Subroutine(NUMTOHEX) With_Parms(#W_CLRST1 #W_CLRHX1)
+
+If Cond('(#W_CLRST2 *NE *BLANKS)')
+* Clear numeric string 2 converteren naar hexadecimaal
+Execute Subroutine(NUMTOHEX) With_Parms(#W_CLRST2 #W_CLRHX2)
+Endif
+Endroutine
+* =======================================================
+* Clear numeric string converteren naar hexadecimaal
+* =======================================================
+Subroutine Name(NUMTOHEX) Parms((#W_A64 *RECEIVED) (#W_A16 *RETURNED))
+Change Field(#W_A32) To(*BLANKS)
+Change Field(#W_P02A) To(1)
+Begin_Loop Using(#W_P02) To(63) Step(2)
+Substring Field(#W_A64 #W_P02 2) Into_Field(#W_A02)
+Case Of_Field(#W_A02)
+When Value_Is('= ''00''' '= ''01''' '= ''02''' '= ''03''' '= ''04''' '= ''05''' '= ''06''' '= ''07''' '= ''08''' '= ''09''')
+Substring Field(#W_A02 2 1) Into_Field(#W_A32 #W_P02A)
+When Value_Is('= ''10''')
+Change Field(#W_A01) To('''A''')
+Substring Field(#W_A01) Into_Field(#W_A32 #W_P02A)
+When Value_Is('= ''11''')
+Change Field(#W_A01) To('''B''')
+Substring Field(#W_A01) Into_Field(#W_A32 #W_P02A)
+When Value_Is('= ''12''')
+Change Field(#W_A01) To('''C''')
+Substring Field(#W_A01) Into_Field(#W_A32 #W_P02A)
+When Value_Is('= ''13''')
+Change Field(#W_A01) To('''D''')
+Substring Field(#W_A01) Into_Field(#W_A32 #W_P02A)
+When Value_Is('= ''14''')
+Change Field(#W_A01) To('''E''')
+Substring Field(#W_A01) Into_Field(#W_A32 #W_P02A)
+When Value_Is('= ''15''')
+Change Field(#W_A01) To('''F''')
+Substring Field(#W_A01) Into_Field(#W_A32 #W_P02A)
+Endcase
+Change Field(#W_P02A) To('#W_P02A + 1')
+End_Loop
+Use Builtin(HEXTOBIN) With_Args(#W_A32 Y) To_Get(#W_A16)
+Endroutine
+* =======================================================
+* Stap 1: Determine current status application
+* =======================================================
+Subroutine Name(CURR_STS)
+* Indicator op J(a)
+Change Field(#W_IND) To(J)
+Select Fields(#GR_PCDBST) From_File(PCDBST) With_Key(#PCDKEY) Io_Error(*NEXT) Val_Error(*NEXT) Options(*BACKWARDS)
+Leave
+Endselect
+If_Status Is_Not(*OKAY)
+Execute Subroutine(DEL_TMPBST)
+* Indicator op N(ee)
+Change Field(#W_IND) To(N)
+Return
+Endif
+
+Fetch Fields(#GR_KLPBST) From_File(KLPBST) With_Key(#RELIDN #PVAIDN #KLPVLG) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+* Indicator op N(ee)
+Change Field(#W_IND) To(N)
+Return
+Endif
+
+Case Of_Field(#STSCOD)
+When Value_Is('= AK+')
+* Niets doen W_IND is gevuld met J(a)
+When Value_Is('= VRV')
+Execute Subroutine(CHK_NR_ODE)
+* Indicator op N(ee)
+Change Field(#W_IND) To(N)
+Otherwise
+* Indicator op N(ee)
+Change Field(#W_IND) To(N)
+Endcase
+Endroutine
+* =======================================================
+* Stap 2: Set up additional services
+* =======================================================
+Subroutine Name(ADD_SERV)
+* Verwerken record(s) uit Temporary storage services
+Select Fields(#GR_TSSBST) From_File(TSSBST) With_Key(#PCDKEY) Io_Error(*NEXT) Val_Error(*NEXT)
+Use Builtin(TCONCAT) With_Args(#ADSGRP HC) To_Get(#W_A06)
+Execute Subroutine(APUEAS) With_Parms(#XKIATKNTN #W_A06 *YYYYMMDD)
+Endselect
+Endroutine
+* =======================================================
+* Stap 3: Process Pin Code
+* =======================================================
+Subroutine Name(VRW_PINCD)
+* Eerst de Decrypting the Portal Encrypted PIN
+If Cond('#TSPKNR *EQ ''1''')
+Execute Subroutine(APGEDS) With_Parms(#W_CLRHX1)
+Else
+Execute Subroutine(APGEDS) With_Parms(#W_CLRHX2)
+Endif
+* PinOffset in CARDFPF Entra bijwerken
+Execute Subroutine(GENOFFSET) With_Parms(#KLPUCN #W_P04)
+* SSP date vullen
+Execute Subroutine(APUEUV) With_Parms(#KLPUCN *YYYYMMDD)
+Endroutine
+* =======================================================
+* Stap 4: Add customernumber to Portal userdatabase
+* =======================================================
+Subroutine Name(ADD_CSTNUM)
+Change Field(#EX_LOGNAM) To(#LOGNAM)
+Change Field(#EX_CSTNUM) To(#XKIATKIPN)
+Exchange Fields(#EX_LOGNAM #EX_CSTNUM)
+Call Process(*DIRECT) Function(WUSM100) Pgm_Exch(*YES) If_Error(*NEXT)
+If Cond('#EX_RETCD *NE *ZERO')
+Execute Subroutine(RLLBCK) With_Parms(10)
+Endif
+Endroutine
+* =======================================================
+* Stap 5: Update statement and web indicator
+* =======================================================
+Subroutine Name(UPD_STMWEB)
+* Update statement indicator
+Execute Subroutine(APUEZC) With_Parms(#XKIATKNTN E *YYYYMMDD)
+* Update web indicator
+Execute Subroutine(APUEZA) With_Parms(#XKIATKIPN Y *YYYYMMDD)
+Endroutine
+* =======================================================
+* Stap 6: Check number of days expired
+* =======================================================
+Subroutine Name(CHK_NR_ODE)
+Select Fields(#GR_KPSBST) From_File(KPSBST) With_Key(#RELIDN #PVAIDN #KLPVLG) Io_Error(*NEXT) Val_Error(*NEXT)
+Leave
+Endselect
+If_Status Is_Not(*OKAY)
+Execute Subroutine(RLLBCK) With_Parms(4)
+Endif
+
+If Cond('(#KPSDTT *GT #W_DATUM1)')
+* Indicator op N(ee)
+Change Field(#W_IND) To(N)
+Else
+Execute Subroutine(DEL_LOGNAM)
+Execute Subroutine(DEL_TMPBST)
+Endif
+Endroutine
+* =======================================================
+* Stap 7: Remove Login name from Portal userdatabase
+* =======================================================
+Subroutine Name(DEL_LOGNAM)
+If Cond('#LOGNAM *NE *BLANKS')
+Change Field(#EX_LOGNAM) To(#LOGNAM)
+Exchange Fields(#EX_LOGNAM)
+Call Process(*DIRECT) Function(WUSM110) Pgm_Exch(*YES) If_Error(*NEXT)
+If Cond('#EX_RETCD *NE *ZERO')
+Execute Subroutine(RLLBCK) With_Parms(5)
+Endif
+Endif
+Endroutine
+* =======================================================
+* Stap 8: Verwijderen record(s) uit Temporary files
+* =======================================================
+Subroutine Name(DEL_TMPBST)
+* Verwijderen record uit Temporary storage PIN Login
+Delete From_File(TSPBST) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+Execute Subroutine(RLLBCK) With_Parms(2)
+Endif
+* Verwijderen record uit Temporary storage services
+Select Fields(#GR_TSSBST) From_File(TSSBST) With_Key(#PCDKEY) Io_Error(*NEXT) Val_Error(*NEXT)
+Delete From_File(TSSBST) Io_Error(*NEXT) Val_Error(*NEXT)
+If_Status Is_Not(*OKAY)
+Execute Subroutine(RLLBCK) With_Parms(3)
+Endif
+Endselect
+Commit
+Endroutine
+* =======================================================
+* Aanroep API Get Card Info (APIEKI)
+* =======================================================
+Subroutine Name(APIEKI)
+Change Field(#XKIKCRD) To(#KLPUCN)
+Change Field(#EX_APISET) To(A)
+Change Field(#EX_APIOCD) To(RC)
+Exchange Fields(#XKIKCRD #EX_APISET #EX_APIOCD)
+Call Pgm(APIEKI) Exit_Used(*NEXT) Menu_Used(*NEXT) Pgm_Exch(*YES) If_Error(*NEXT)
+If Cond('#EX_APIRTC *NE OK')
+Execute Subroutine(RLLBCK) With_Parms(6)
+Endif
+Endroutine
+* =======================================================
+* Aanroep API Add Service Customer Account (APUEAS)
+* =======================================================
+Subroutine Name(APUEAS) Parms((#XASKKNTN *RECEIVED) (#XASIASID *RECEIVED) (#XASIUPDT *RECEIVED))
+Change Field(#XASIENDT) To(*ZERO)
+Change Field(#XASICTNR) To(*BLANKS)
+Change Field(#EX_APIOCD) To(RC)
+Exchange Fields(#XASKKNTN #XASIASID #XASIUPDT #XASIENDT #XASICTNR #EX_APIOCD)
+Call Pgm(APUEAS) Exit_Used(*NEXT) Menu_Used(*NEXT) Pgm_Exch(*YES) If_Error(*NEXT)
+If Cond('(#EX_APIRTC *NE OK) *AND (#EX_APIEMI *NE AVS0101)')
+Execute Subroutine(RLLBCK) With_Parms(7)
+Endif
+Endroutine
+* =======================================================
+* GO: Generate Offset (APUEGO)
+* =======================================================
+Subroutine Name(GENOFFSET) Parms((#XGOKCRNUM *RECEIVED) (#XGOKCLRPN *RECEIVED))
+
+* IN  XGOKCRNUM                      Cardnumber
+*     XGOICRKEY                      Card Key
+*     XGOKCLRPN                      Clear Pin
+* UIT EX_APIRTC  OK/ER               Returncode
+*                OK=API ran OK
+*                ER=API found Error
+*     EX_APIEMI                      ErrorMessage Id
+*     EX_APIEMF                      ErrorMessage File
+*     EX_BCSSER                      BCSS Error code
+
+
+Exchange Fields(#XGOKCRNUM #XGOKCLRPN)
+
+Call Pgm(APUEGO) Exit_Used(*NEXT) Menu_Used(*NEXT) Pgm_Exch(*YES) If_Error(*NEXT)
+If Cond('#EX_APIRTC *NE OK')
+Execute Subroutine(RLLBCK) With_Parms(8)
+Endif
+Endroutine
+* =======================================================
+* Aanroep API Update card user-defined variables (APUEUV)
+* =======================================================
+Subroutine Name(APUEUV) Parms((#XUVKCRDNR *RECEIVED) (#XUVANDAT4 *RECEIVED))
+Change Field(#EX_APIOCD) To(RC)
+Exchange Fields(#XUVKCRDNR #XUVANDAT4 #EX_APIOCD)
+Call Pgm(APUEUV) Exit_Used(*NEXT) Menu_Used(*NEXT) Pgm_Exch(*YES) If_Error(*NEXT)
+If Cond('#EX_APIRTC *NE OK')
+Execute Subroutine(RLLBCK) With_Parms(9)
+Endif
+Endroutine
+* =======================================================
+* Aanroep API Update account user-defined var. (APUEZC)
+* =======================================================
+Subroutine Name(APUEZC) Parms((#XZCKKNTN *RECEIVED) (#XZCAUVAR3 *RECEIVED) (#XZCAUDAT3 *RECEIVED))
+Change Field(#EX_APIOCD) To(RC)
+Exchange Fields(#XZCKKNTN #XZCAUVAR3 #XZCAUDAT3 #EX_APIOCD)
+Call Pgm(APUEZC) Exit_Used(*NEXT) Menu_Used(*NEXT) Pgm_Exch(*YES) If_Error(*NEXT)
+If Cond('#EX_APIRTC *NE OK')
+Execute Subroutine(RLLBCK) With_Parms(11)
+Endif
+Endroutine
+* =======================================================
+* Aanroep API Update customer extension info (APUEZA)
+* =======================================================
+Subroutine Name(APUEZA) Parms((#XZAKKIPN *RECEIVED) (#XZAAUVAR4 *RECEIVED) (#XZAAUDAT4 *RECEIVED))
+Change Field(#EX_APIOCD) To(RC)
+Exchange Fields(#XZAKKIPN #XZAAUVAR4 #XZAAUDAT4 #EX_APIOCD)
+Call Pgm(APUEZA) Exit_Used(*NEXT) Menu_Used(*NEXT) Pgm_Exch(*YES) If_Error(*NEXT)
+If Cond('#EX_APIRTC *NE OK')
+Execute Subroutine(RLLBCK) With_Parms(12)
+Endif
+Endroutine
+* =======================================================
+* Aanroep API Encrypt / Decrypt Data (APGEDS)
+* =======================================================
+Subroutine Name(APGEDS) Parms((#XDSAKEY *RECEIVED))
+Use Builtin(HEXTOBIN) With_Args(#TSPPEP Y) To_Get(#XDSASTRI)
+Change Field(#XDSAEOD) To(D)
+Call Pgm(APGEDS) Parm(#XDSASTRI #XDSAKEY #XDSAEOD #EX_APIRTC #EX_APIEMI #EX_APIEMF #XDSASTRO) Num_Len(*DEFINED) Pgm_Exch(*YES) If_Error(*NEXT)
+If Cond('#EX_APIRTC *EQ OK')
+Use Builtin(BINTOHEX) With_Args(#XDSASTRO) To_Get(#W_A100)
+Use Builtin(HEXTOBIN) With_Args(#W_A100 Y) To_Get(#W_P04)
+Else
+Execute Subroutine(RLLBCK) With_Parms(14)
+Endif
+Endroutine
+* =======================================================
+* Aanroep module Decrypt numerieke string
+* =======================================================
+Subroutine Name(DECRYPT) Parms((#W_ENCSTR *RECEIVED) (#W_CLRSTR *RETURNED))
+Change Field(#W_CLRSTR #W_ERRTXT) To(*NULL)
+Call Pgm(BCDCRSTR) Parm(#W_ENCSTR #W_CLRSTR #UTNNWR #W_ERRTXT) Menu_Used(*NEXT)
+If_Null Field(#W_ERRTXT)
+Else
+Execute Subroutine(RLLBCK) With_Parms(13)
+Endif
+Endroutine
+* =======================================================
+* Subroutine Rollback met foutmelding
+* =======================================================
+Subroutine Name(RLLBCK) Parms((#W_P02 *RECEIVED))
+Case Of_Field(#W_P02)
+When Value_Is('= 1') /* Fout met PARTAB */
+Message Msgid(ALG0033) Msgf(CVSMSGFDUT) Msgdta(PARTAB)
+When Value_Is('= 2') /* Fout met TSPBST */
+Message Msgid(ALG0034) Msgf(CVSMSGFDUT) Msgdta(TSPBST)
+When Value_Is('= 3') /* Fout met TSSBST */
+Message Msgid(ALG0034) Msgf(CVSMSGFDUT) Msgdta(TSSBST)
+When Value_Is('= 4') /* Fout met KPSBST */
+Message Msgid(ALG0033) Msgf(CVSMSGFDUT) Msgdta(KPSBST)
+When Value_Is('= 5') /* Fout met WUSM110 */
+Message Msgid(GEN0105) Msgf(CVSMSGFDUT) Msgdta(WUSM110)
+When Value_Is('= 6') /* Fout met APIEKI */
+Message Msgid(GEN0129) Msgf(CVSMSGFDUT) Msgdta(APIEKI)
+When Value_Is('= 7') /* Fout met APUEAS */
+Message Msgid(GEN0129) Msgf(CVSMSGFDUT) Msgdta(APUEAS)
+When Value_Is('= 8') /* Fout met APUECP */
+Message Msgid(GEN0129) Msgf(CVSMSGFDUT) Msgdta(APUEGO)
+When Value_Is('= 9') /* Fout met APUEUV */
+Message Msgid(GEN0129) Msgf(CVSMSGFDUT) Msgdta(APUEUV)
+When Value_Is('= 10') /* Fout met WUSM100 */
+Message Msgid(GEN0105) Msgf(CVSMSGFDUT) Msgdta(WUSM100)
+When Value_Is('= 11') /* Fout met APUEZC */
+Message Msgid(GEN0129) Msgf(CVSMSGFDUT) Msgdta(APUEZC)
+When Value_Is('= 12') /* Fout met APUEZA */
+Message Msgid(GEN0129) Msgf(CVSMSGFDUT) Msgdta(APUEZA)
+When Value_Is('= 13') /* Fout met BCDCRSTR */
+Message Msgid(GEN0105) Msgf(CVSMSGFDUT) Msgdta(BCDCRSTR)
+When Value_Is('= 14') /* Fout met APGEDS */
+Message Msgid(GEN0129) Msgf(CVSMSGFDUT) Msgdta(APGEDS)
+Endcase
+Rollback
+Abort
+Endroutine
+

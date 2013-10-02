@@ -1,0 +1,505 @@
+* ==================================================================================
+* Type            : COMMAND HANDLER
+* Platform        : MS-WINDOWS (Visual LANSA)
+* Ancestor        : VF_AC010
+* Written By      : ONJRENTI
+* Written On      : 6th JUNE 2008  at 11:53:22
+* Copyright       : (C) Copyright
+* Framework       : Contact Management Framework
+* Application     : Administration
+* Business Object : Users and Authorities
+* Command Handler : Custom Properties
+* ==================================================================================
+Function Options(*DIRECT)
+Begin_Com Role(*EXTENDS #PRIM_PANL) Displayposition(1) Height(980) Layoutmanager(#MAIN_LAYOUT) Left(0) Tabposition(1) Top(0) Visualstyleofparent(False) Width(1284)
+* ================================================================================
+* GLOBAL Component definitions
+* ================================================================================
+Define_Com Class(#CM_DSCPRX) Name(#DescProxy) Scope(*APPLICATION)
+Define_Com Class(#CM_CONPRX) Name(#ConnProxy) Scope(*APPLICATION)
+Define_Com Class(#CM_USRPRX) Name(#UserProxy) Scope(*APPLICATION)
+Define_Com Class(#CM_AUTPRX) Name(#AutProxy) Scope(*APPLICATION)
+Define_Com Class(#CM_ALTINF) Name(#AlertInfo) Scope(*APPLICATION)
+Define_Com Class(#CM_CALLID) Name(#TelecomProxy) Scope(*APPLICATION)
+Define_Com Class(#CMQPREF) Name(#PrefProxy) Scope(*APPLICATION)
+
+Define_Com Class(#CM_load) Name(#loadForm)
+
+Define_Com Class(#CMRACC) Name(#CustomerRecord) Reference(*DYNAMIC)
+* BOOLEANS
+Define_Com Class(#prim_boln) Name(#isValidUser)
+Define_Com Class(#prim_boln) Name(#callopen)
+Define_Com Class(#prim_boln) Name(#isOK)
+Define_Com Class(#PRIM_BOLN) Name(#AbortApplication)
+
+Define_Com Class(#PRIM_ALPH) Name(#TESTVELD)
+* Integers
+* Collections
+Define_Com Class(#prim_acol<#prim_timr>) Name(#Timers)
+Define_Com Class(#prim_acol<#cm_pnlcls>) Name(#Panels1)
+Define_Com Class(#prim_acol<#cm_pnlcls>) Name(#Panels2)
+Define_Com Class(#prim_acol<#cm_pnlcls>) Name(#Panels3)
+Define_Com Class(#prim_acol<#cm_pnlcls>) Name(#Panels4)
+* ================================================================================
+* Simple Field and Group Definitions
+* ================================================================================
+Define_Com Class(#prim_boln) Name(#processing)
+* ================================================================================
+* Component definitions
+* ================================================================================
+*  Body and Button arrangement panels
+Define_Com Class(#PRIM_PANL) Name(#BODY_HEAD) Displayposition(1) Height(980) Left(0) Parent(#COM_OWNER) Tabposition(1) Tabstop(False) Top(0) Verticalscroll(True) Width(1284)
+Define_Com Class(#PRIM_PANL) Name(#PNL_LEFT) Busyupdates(Immediate) Displayposition(3) Height(792) Left(0) Parent(#BODY_HEAD) Tabposition(2) Tabstop(False) Top(0) Width(340)
+Define_Com Class(#PRIM_PANL) Name(#PNL_RIGHT) Busyupdates(Immediate) Displayposition(4) Height(930) Left(952) Parent(#BODY_HEAD) Tabposition(3) Tabstop(False) Top(0) Width(332)
+Define_Com Class(#PRIM_PANL) Name(#PNL_CENTER) Busyupdates(Immediate) Displayposition(2) Height(792) Left(340) Parent(#BODY_HEAD) Tabposition(4) Tabstop(False) Top(0) Width(597)
+Define_Com Class(#PRIM_PANL) Name(#PNL_BOTTOM) Busyupdates(Immediate) Displayposition(5) Height(138) Left(0) Parent(#BODY_HEAD) Tabposition(5) Tabstop(False) Top(792) Width(929)
+*  Attachment and flow layout managers
+Define_Com Class(#PRIM_ATLM) Name(#MAIN_LAYOUT)
+Define_Com Class(#PRIM_FWLM) Name(#BUTTON_FLOW) Direction(TopToBottom) Flowoperation(Center) Marginbottom(4) Marginleft(4) Marginright(4) Margintop(4) Spacing(4) Spacingitems(4)
+Define_Com Class(#PRIM_ATLI) Name(#BODY_ATTACH) Attachment(Center) Manage(#BODY_HEAD) Parent(#MAIN_LAYOUT)
+Define_Com Class(#PRIM_ATLM) Name(#ATLM_1)
+Define_Com Class(#PRIM_ATLI) Name(#ATLI_1) Attachment(Center) Manage(#ProspectPanel) Parent(#ATLM_1)
+*  Dynamic panels
+* PANEL CENTER
+Define_Com Class(#CM_SEARCH) Name(#SearchPanel) Parent(#PNL_CENTER) Tabposition(5) Top(136) Visualstyleofparent(False)
+Define_Com Class(#CM_CSTINF) Name(#CustomerInfoPanel) Displayposition(4) Parent(#PNL_CENTER) Tabposition(4) Tabstop(False) Visible(False) Visualstyleofparent(False)
+Define_Com Class(#CM_ACCINF) Name(#AccountInfoPanel) Displayposition(3) Height(361) Parent(#PNL_CENTER) Tabposition(3) Tabstop(False) Top(234) Visible(False) Visualstyleofparent(False)
+Define_Com Class(#CM_STAINF) Name(#StatementInfoPanel) Displayposition(2) Parent(#PNL_CENTER) Tabposition(2) Tabstop(False) Top(595) Visible(False)
+* PANEL LEFT
+Define_Com Class(#CM_PERF) Name(#PerformancePanel) Displayposition(3) Parent(#PNL_LEFT) Tabposition(3) Visualstyleofparent(False)
+Define_Com Class(#CM_SELACC) Name(#SelectAccountPanel) Parent(#PNL_LEFT) Top(143) Visible(False) Visualstyleofparent(False)
+Define_Com Class(#CM_PROSP) Name(#ProspectPanel) Displayposition(5) Height(792) Parent(#PNL_CENTER) Visible(False) Visualstyleofparent(False) Width(597)
+Define_Com Class(#CM_NOTES) Name(#NotesPanel) Displayposition(2) Height(430) Parent(#PNL_LEFT) Tabposition(2) Tabstop(False) Top(355) Visible(False)
+* Define_Com Class(#CM_APPL) Name(#ApplicationsPanel) Displayposition(4) Height(137) Parent(#PNL_LEFT) Tabposition(2) Tabstop(False) Top(144) Width(324)
+* PANEL BOTTOM
+Define_Com Class(#CM_CRDINF) Name(#CardInfoPanel) Parent(#PNL_BOTTOM) Tabstop(False) Top(8) Visible(False)
+* PANEL RIGHT
+Define_Com Class(#CM_CNTREG) Name(#ContactRegistrPanel) Parent(#PNL_RIGHT) Tabstop(False) Top(595) Visible(False)
+Define_Com Class(#CM_COMOFR) Name(#CommercialOfferPanel) Displayposition(2) Parent(#PNL_RIGHT) Tabposition(2) Tabstop(False) Visible(False)
+Define_Com Class(#CM_RETAIN) Name(#RetainInfoPanel) Displayposition(3) Parent(#PNL_RIGHT) Tabposition(3) Tabstop(False) Top(354) Visible(False)
+* ================================================================================
+* TIMERS
+* refresh CustomerInfoPanel
+* Define_Com Class(#PRIM_TIMR) Name(#TR_1) Interval(0)
+* refresh AccountInfoPanel
+* Define_Com Class(#PRIM_TIMR) Name(#TR_2) Interval(0)
+* refresh StatementInfoPanel
+Define_Com Class(#PRIM_TIMR) Name(#TR_3) Interval(0)
+* Define_Com Class(#PRIM_TIMR) Name(#TR_4) Interval(0)
+* refresh CardInfoPanel
+Define_Com Class(#PRIM_TIMR) Name(#TR_5) Interval(0)
+* refresh NotesPanel
+Define_Com Class(#PRIM_TIMR) Name(#TR_6) Interval(0)
+* refresh
+Define_Com Class(#PRIM_TIMR) Name(#TR_7) Interval(0)
+* refresh ContactRegistrPanel
+Define_Com Class(#PRIM_TIMR) Name(#TR_8) Interval(0)
+* Define_Com Class(#PRIM_TIMR) Name(#TR_9) Interval(0)
+* refresh CommercialOfferPanel
+Define_Com Class(#PRIM_TIMR) Name(#TR_10) Interval(0)
+* refresh RetainInfoPanel
+Define_Com Class(#PRIM_TIMR) Name(#TR_11) Interval(0)
+* POPUP menu
+Define_Com Class(#CM_CALBCK) Name(#CallBackPanel) Left(8) Parent(#BODY_HEAD) Tabstop(False) Top(584)
+* ticker op 30 minuten zetten
+Define_Com Class(#PRIM_TIMR) Name(#DummyRead) Interval(1800000)
+* ================================================================================
+* Events Definitions
+* ================================================================================
+Define_Evt Name(eShowMessages)
+* ================================================================================
+* Property Definitions
+* ================================================================================
+Define_Pty Name(AbortApplication) Get(*auto #AbortApplication)
+Define_Pty Name(CurrentJSMHandler) Get(*auto #JSMXHDLE)
+
+* --------------------------------------------------------------------------------
+* Handle Command Execution
+* --------------------------------------------------------------------------------
+Mthroutine Name(uExecute)
+
+If (#callopen)
+#ContactRegistrPanel.mEndCall
+Endif
+
+#PerformancePanel.mInitPerformance( #JSMXHDLE )
+#CallBackPanel.mInitCallBack( #JSMXHDLE )
+* show the search panel
+#com_owner.pmShowDetails( false )
+#com_owner.pmShowSearch( true )
+
+Endroutine
+Mthroutine Name(mSetFocus)
+#SearchPanel.mSetFocus
+Endroutine
+* --------------------------------------------------------------------------------
+* Handle Initialization
+* --------------------------------------------------------------------------------
+Mthroutine Name(uInitialize)
+#com_owner.ShowLoadForm( "Initialize CMT...." )
+
+If (#callopen)
+#ContactRegistrPanel.mEndCall
+Endif
+* add all the timer components to the timer collection
+For Each(#obj) In(#com_owner.ComponentMembers)
+If_Ref Com(#obj) Is(*INSTANCE_OF #prim_timr)
+#Timers.Insert( (#obj *As #prim_timr) )
+Endif
+If_Ref Com(#obj) Is(*INSTANCE_OF #cm_pnlcls)
+
+#std_text := #obj.ComponentPatternName
+* put panels in collection but
+* exclude panels: applications, performance, select account, search & callback
+If ((#obj.ComponentPatternName <> CM_APPL) *And (#obj.ComponentPatternName <> CM_PERF) *And (#obj.ComponentPatternName <> CM_SELACC) *And (#obj.ComponentPatternName <> CM_SEARCH) *And (#obj.ComponentPatternName <> CM_CALBCK) *And (#obj.ComponentPatternName <> CM_PROSP))
+#Panels1.insert( (#obj *As #cm_pnlcls) )
+Endif
+* put panels in collection but
+* exclude panels: select account, search, prospects & callback
+If ((#obj.ComponentPatternName <> CM_APPL) *And (#obj.ComponentPatternName <> CM_SELACC) *And (#obj.ComponentPatternName <> CM_SEARCH) *And (#obj.ComponentPatternName <> CM_CALBCK) *And (#obj.ComponentPatternName <> CM_PROSP))
+#Panels2.insert( (#obj *As #cm_pnlcls) )
+Endif
+* put panels in collection but
+* exclude panels: applications, performance, search, prospects & callback
+If ((#obj.ComponentPatternName <> CM_APPL) *And (#obj.ComponentPatternName <> CM_PERF) *And (#obj.ComponentPatternName <> CM_SEARCH) *And (#obj.ComponentPatternName <> CM_CALBCK) *And (#obj.ComponentPatternName <> CM_PROSP))
+#Panels3.insert( (#obj *As #cm_pnlcls) )
+Endif
+
+* exclude all panels except the propect panel
+If ((#obj.ComponentPatternName = CM_PROSP))
+#Panels4.insert( (#obj *As #cm_pnlcls) )
+Endif
+Endif
+Endfor
+* Get LANSA Integrator Details from connection proxy
+* system
+#std_a30b := #ConnProxy.pLANSAIntegrator
+* trace Y/N
+#std_alpha := #ConnProxy.pLANSAIntTrace
+* ODS Name
+#std_text := #ConnProxy.pODSName
+* exchange values to function
+Exchange Fields(#std_a30b #std_alpha #std_text)
+* setup LANSA Integrator session
+Call Process(*Direct) Function(CMLI001) Exit_Used(*NEXT) Menu_Used(*NEXT) If_Error(*next)
+* receive JSMXHANDLE from function
+* setup userproxy
+#isValidUser := #UserProxy.mInitProxy( #JSMXHDLE )
+
+#com_owner.HideLoadForm
+
+* Connect to the AVAYA switchboard
+#AbortApplication := False
+* #TelecomProxy.JSMHANDLE := #JSMXHDLE
+If (#TelecomProxy.ConnectToAPI( #UserProxy.pAgentNumber ))
+#com_owner.ShowLoadForm( "Initialize CMT...." )
+* load descriptions proxy
+#DescProxy.mInitProxy( #JSMXHDLE )
+* Load autorisation proxy
+#AutProxy.mInitProxy( #JSMXHDLE )
+#com_owner.HideLoadForm
+Else
+#com_owner.uTerminate
+#AbortApplication := True
+Endif
+Endroutine
+* --------------------------------------------------------------------------------
+* Handle Termination
+* --------------------------------------------------------------------------------
+Mthroutine Name(uTerminate)
+If (#callopen)
+#ContactRegistrPanel.mEndCall
+Endif
+
+Exchange Fields(#JSMXHDLE)
+Call Process(*Direct) Function(CMLI002) Exit_Used(*NEXT) Menu_Used(*NEXT) If_Error(*next)
+Endroutine
+Mthroutine Name(uActivate)
+If (#callopen)
+#ContactRegistrPanel.mEndCall
+Endif
+Endroutine
+* ================================================================================
+* Method Definitions (Protected Methods)
+* ================================================================================
+Mthroutine Name(pmShowSearch) Access(*PROTECT)
+Define_Map For(*input) Class(#prim_boln) Name(#visible)
+
+* #ApplicationsPanel.Visible := #Visible
+#SearchPanel.Visible := #Visible
+#CallBackPanel.Visible := #Visible
+#SearchPanel.mInitSearch
+#PerformancePanel.mInitPerformance( #JSMXHDLE )
+* #ApplicationsPanel.mInitForm( #JSMXHDLE )
+
+Set Com(#Panels4<>) Visible(False)
+If (#visible)
+#SearchPanel.mSetFocus
+Endif
+Endroutine
+Mthroutine Name(pmShowDetails) Access(*PROTECT)
+Define_Map For(*input) Class(#prim_boln) Name(#visible)
+Define_Map For(*Input) Class(#PRIM_ALPH) Name(#InfoType) Mandatory(CARD)
+
+#Panels1<>.mClearFields
+Set Com(#Panels2<>) Enabled(false)
+#ContactRegistrPanel.Enabled := true
+#ContactRegistrPanel.mEnable( false )
+
+Case (#InfoType)
+When ('= PROSPECT')
+Set Com(#Panels3<>) Visible(*Not #Visible)
+Set Com(#Panels4<>) Visible(#Visible)
+#ProspectPanel.SetFocus
+Otherwise
+Set Com(#Panels3<>) Visible(#Visible)
+Set Com(#Panels4<>) Visible(*Not #Visible)
+#SelectAccountPanel.mSetFocus
+Endcase
+Endroutine
+
+Mthroutine Name(ShowLoadForm)
+Define_Map For(*input) Class(#PRIM_ALPH) Name(#pOverideText) Mandatory('')
+
+If (#pOverideText <> '')
+#loadForm.mOverrideText( #pOverideText )
+Endif
+
+#loadForm.left := #PNL_CENTER.screenleft + ((#PNL_CENTER.Width / 2) - (#loadForm.width / 2))
+#loadForm.top := #PNL_CENTER.screentop + ((#PNL_CENTER.height / 2) - (#loadForm.height / 2))
+
+#loadForm.ShowForm
+Endroutine
+
+Mthroutine Name(HideLoadForm)
+#loadForm.HideForm
+Endroutine
+
+Mthroutine Name(avShowMessages)
+Signal Event(eShowMessages)
+Endroutine
+* ================================================================================
+* Event Handlers
+* ================================================================================
+Evtroutine Handling(#TelecomProxy.ShowLoadMessage) Overridetxt(#pOverrideTXT)
+#COM_OWNER.ShowLoadForm( #pOverrideTXT )
+Endroutine
+
+Evtroutine Handling(#TelecomProxy.HideLoadMessage)
+#COM_OWNER.HideLoadForm
+Endroutine
+* FROM SEARCH =
+* =============
+Evtroutine Handling(#SearchPanel.eStart) Options(*NOCLEARERRORS *NOCLEARMESSAGES) Postalcode(#Postalcode) Housenumber(#Housenumber) Extention(#Extent) Cardnumber(#Cardnumber) Customername(#Customername) Externalid(#Externalid) Dateofbirth(#DateOfBirth) Accountnumber(#AccountNumber)
+Define_Com Class(#prim_alph) Name(#ANI)
+Define_Com Class(#prim_alph) Name(#UCID)
+Define_Com Class(#prim_alph) Name(#DNIS)
+Define_Com Class(#prim_nmbr) Name(#Calltype)
+
+#com_owner.ShowLoadForm( "Searching......." )
+
+* Calling nummebr
+#AlertInfo.pANI := #TelecomProxy.GetCurrentANI
+* Unique Callid
+#AlertInfo.pUCID := #TelecomProxy.GetCurrentUCID
+* Dialed number by caller
+#AlertInfo.pDNIS := #TelecomProxy.GetCurrentDNIS
+* Type of call. 0 = No Call, 1 = inbound, 2 = outbound
+#AlertInfo.pCallerTYPE := #TelecomProxy.GetCurrentCallType
+#AlertInfo.pIdentificationFlag := #TelecomProxy.pCurrentIDFlag
+
+* customernr is only used to open callback items, here it is SQLNULL
+If (*Not #SelectAccountPanel.mInitSelectAcc( #Postalcode #Housenumber #Extent #Cardnumber #Customername #Externalid #DateOfBirth #AccountNumber *SQLNULL #JSMXHDLE ))
+#com_owner.avShowMessages
+#SearchPanel.mInitSearch
+Else
+#com_owner.pmShowSearch( false )
+#com_owner.pmShowDetails( true )
+Endif
+#com_owner.HideLoadForm
+Endroutine
+* Evtroutine Handling(#SearchPanel.eProspect) Options(*NOCLEARERRORS *NOCLEARMESSAGES) Postalcode(#Postalcode) Housenumber(#Housenumber) Externalid(#Externalid) Clientname(#ClientName) Dateofbirth(#DateOfBirth) Prospectnumber(#Prospectnumber)
+* #com_owner.ShowLoadForm( "Searching......." )
+*
+* * customernr is only used to open callback items, here it is SQLNULL
+* If (*Not #ProspectPanel.mInitSelectAcc( #Postalcode #Housenumber #Externalid #ClientName #DateOfBirth #Prospectnumber #JSMXHDLE ))
+* #com_owner.avShowMessages
+* #SearchPanel.mInitSearch
+* Else
+* #com_owner.pmShowSearch( false )
+* #com_owner.pmShowDetails( true PROSPECT )
+* Endif
+* #com_owner.HideLoadForm
+* Endroutine
+* ************ *
+* TIMER EVENTS *
+* ************ *
+Evtroutine Handling(#DummyRead.Tick) Options(*NOCLEARMESSAGES *NOCLEARERRORS)
+Call Process(*direct) Function(CMDUMMY)
+#DummyRead.Interval := 1800000
+Endroutine
+* Evtroutine Handling(#TR_1.Tick) Options(*NOCLEARMESSAGES *NOCLEARERRORS)
+* * #CustomerInfoPanel.mInitCustomerInfo Customernumber(#KRKIPN002) Ownaddressindicator(#PDAIEA) Jsmhandle(#JSMXHDLE) Customerrecord(#CustomerRecord)
+* * #AccountInfoPanel.mInitAccountInfo Accountnumber(#KRKNTN002) Jsmhandle(#JSMXHDLE) Customerrecord(#CustomerRecord)
+*
+* #TR_1.Interval := 0
+* * #CustomerInfoPanel.mCloseLoad
+* * #AccountInfoPanel.mCloseLoad
+*
+* Endroutine
+* Evtroutine Handling(#TR_2.Tick) Options(*NOCLEARMESSAGES *NOCLEARERRORS)
+* * #AccountInfoPanel.mInitAccountInfo Accountnumber(#KRKNTN002) Jsmhandle(#JSMXHDLE) Customerrecord(#CustomerRecord)
+* #TR_2.Interval := 0
+* * #AccountInfoPanel.mCloseLoad
+* Endroutine
+Evtroutine Handling(#TR_3.Tick) Options(*NOCLEARMESSAGES *NOCLEARERRORS)
+#StatementInfoPanel.mInitStatement Accountnumber(#KRKNTN002) Jsmhandle(#JSMXHDLE)
+#TR_3.Interval := 0
+#StatementInfoPanel.mCloseLoad
+Endroutine
+* Evtroutine Handling(#TR_4.Tick) Options(*NOCLEARMESSAGES *NOCLEARERRORS)
+* #TR_4.Interval := 0
+* Endroutine
+Evtroutine Handling(#TR_5.Tick) Options(*NOCLEARMESSAGES *NOCLEARERRORS)
+#CardInfoPanel.mInitCardInfo Accountnumber(#KRKNTN002) Ownembossingind(#TS_OEI) Jsmhandle(#JSMXHDLE)
+#TR_5.Interval := 0
+#CardInfoPanel.mCloseLoad
+Endroutine
+Evtroutine Handling(#TR_6.Tick) Options(*NOCLEARMESSAGES *NOCLEARERRORS)
+#NotesPanel.mInitNotes Accountnumber(#KRKNTN002) Jsmhandle(#JSMXHDLE) Customernumber(#KRKIPN002)
+
+#TR_6.interval := 0
+#NotesPanel.mCloseLoad
+Endroutine
+Evtroutine Handling(#TR_8.Tick) Options(*NOCLEARMESSAGES *NOCLEARERRORS)
+#ContactRegistrPanel.mInitContactReg
+#TR_8.Interval := 0
+#ContactRegistrPanel.mCloseLoad
+Endroutine
+* Evtroutine Handling(#TR_9.Tick) Options(*NOCLEARMESSAGES *NOCLEARERRORS)
+* #TR_9.Interval := 0
+* Endroutine
+Evtroutine Handling(#TR_10.Tick) Options(*NOCLEARMESSAGES *NOCLEARERRORS)
+#CommercialOfferPanel.mInitCommercialOffer Accountnumber(#KRKNTN002) Jsmhandle(#JSMXHDLE) Customernumber(#KRKIPN002)
+#TR_10.Interval := 0
+#CommercialOfferPanel.mCloseLoad
+Endroutine
+Evtroutine Handling(#TR_11.Tick) Options(*NOCLEARMESSAGES *NOCLEARERRORS)
+#CustomerInfoPanel.mInitCustomerInfo Customernumber(#KRKIPN002) Ownaddressindicator(#PDAIEA) Jsmhandle(#JSMXHDLE) Customerrecord(#CustomerRecord)
+#AccountInfoPanel.mInitAccountInfo Accountnumber(#KRKNTN002) Jsmhandle(#JSMXHDLE) Customerrecord(#CustomerRecord)
+
+* #RetainInfoPanel.mInitRetainPanel Accountnumber(#KRKNTN002) Jsmhandle(#JSMXHDLE)
+#TR_11.Interval := 0
+
+#CustomerInfoPanel.mCloseLoad
+#AccountInfoPanel.mCloseLoad
+
+* #RetainInfoPanel.mCloseLoad
+Endroutine
+Evtroutine Handling(#TR_7.Tick) Options(*NOCLEARMESSAGES *NOCLEARERRORS)
+If ((#TR_3.Interval = 0) *And (#TR_5.Interval = 0) *And (#TR_6.Interval = 0) *And (#TR_8.Interval = 0) *And (#TR_10.Interval = 0) *And (#TR_11.Interval = 0))
+* (#TR_1.Interval = 0)
+* And (#TR_2.Interval = 0) *And
+* And (#TR_4.Interval = 0)
+* And (#TR_9.Interval = 0)
+#TR_7.Interval := 0
+#AlertInfo.mApplyrules
+* #RetainInfoPanel.mInitRetainPanel Accountnumber(#KRKNTN002) Jsmhandle(#JSMXHDLE)
+#RetainInfoPanel.mCloseLoad
+#Panels1<>.mCloseLoad
+Set Com(#Panels2<>) Enabled(true)
+* set customer bankaccountnumber in Account info
+* #AccountInfoPanel.mSetCustBankAccount( #CustomerInfoPanel.pBankAccount )
+#ContactRegistrPanel.mEnable( true )
+#ContactRegistrPanel.mSetFocus
+Endif
+Endroutine
+* ****************** *
+* EVENTS FROM PANELS *
+* ****************** *
+Evtroutine Handling(#SelectAccountPanel.eAccountSelected) Accountnumber(#Accountnumber) Customernumber(#Customernumber) Ownadrindicator(#ownadrindicator) Ownembossingind(#ownembossingInd) Selectedcustomerrec(#SelectedCustomerRec)
+
+#CustomerRecord <= #SelectedCustomerRec
+
+#KRKIPN002 := #Customernumber
+#KRKNTN002 := #Accountnumber
+#PDAIEA := #ownadrindicator
+#TS_OEI := #ownembossingInd
+
+#CommercialOfferPanel.pDoRefresh := true
+Set Com(#Timers<>) Interval(1)
+
+#Panels1<>.mShowLoad
+#callopen := true
+Endroutine
+Evtroutine Handling(#SelectAccountPanel.eSaveOffered)
+#DummyRead.Interval := 1800000
+#CommercialOfferPanel.mSaveOffer
+Endroutine
+Evtroutine Handling(#ContactRegistrPanel.eEndCall) Iscancel(#isCancel)
+#DummyRead.Interval := 1800000
+#callopen := false
+#com_owner.pmShowDetails( false )
+#com_owner.pmShowSearch( true )
+#CallBackPanel.mInitCallBack( #JSMXHDLE )
+#isOK := #UserProxy.mInitProxy( #JSMXHDLE )
+#PerformancePanel.mInitPerformance( #JSMXHDLE )
+#SearchPanel.mInitSearch
+Endroutine
+Evtroutine Handling(#ProspectPanel.eEndCall) Iscancel(#isCancel)
+#DummyRead.Interval := 1800000
+#callopen := false
+#com_owner.pmShowDetails( false )
+#com_owner.pmShowSearch( true )
+#CallBackPanel.mInitCallBack( #JSMXHDLE )
+#isOK := #UserProxy.mInitProxy( #JSMXHDLE )
+#PerformancePanel.mInitPerformance( #JSMXHDLE )
+#SearchPanel.mInitSearch
+Endroutine
+
+Evtroutine Handling(#ContactRegistrPanel.eSaveOffered)
+#DummyRead.Interval := 1800000
+#CommercialOfferPanel.mSaveOffer
+Endroutine
+
+Evtroutine Handling(#RetainInfoPanel.eGetAccInfoSource) Source(#source)
+#source <= #AccountInfoPanel
+Endroutine
+Evtroutine Handling(#RetainInfoPanel.eGetCustInfoSource) Source(#source)
+#source <= #CustomerInfoPanel
+Endroutine
+Evtroutine Handling(#CallBackPanel.eOpenCallbackItem) Customernumber(#customerNumber)
+#com_owner.ShowLoadForm( "Searching......." )
+
+* customernr is only used to open callback items, other value are SQLNULL in this case
+If (*Not #SelectAccountPanel.mInitSelectAcc( *SQLNULL *SQLNULL *SQLNULL *SQLNULL *SQLNULL *SQLNULL *SQLNULL *SQLNULL #customerNumber #JSMXHDLE ))
+Message Msgtxt("There are no accounts found.")
+#com_owner.avShowMessages
+#SearchPanel.mInitSearch
+Else
+#com_owner.pmShowSearch( false )
+#com_owner.pmShowDetails( true )
+Endif
+#com_owner.HideLoadForm
+Endroutine
+
+* Frank: Geeft error over event dat niet bestaat
+* Evtroutine Handling(#StatementInfoPanel.SendStatementLetter) Accountnumber(#accountnumber) Jsmhandle(#JSMHandle) Statementperiods(#Statements)
+* #RetainInfoPanel.mSendStatementLetter( #accountnumber #JSMHandle #Statements )
+* Endroutine
+
+Evtroutine Handling(#AlertInfo.ShowMessageBox)
+#com_owner.ShowMessages
+Endroutine
+Evtroutine Handling(#ContactRegistrPanel.eRefresh)
+#CommercialOfferPanel.pDoRefresh := false
+Set Com(#Timers<>) Interval(1)
+#Panels1<>.mShowLoad
+Endroutine
+Evtroutine Handling(#SelectAccountPanel.eEndCall)
+#ContactRegistrPanel.mEndCall
+Endroutine
+Evtroutine Handling(#CardInfoPanel.eGetCustInfoSource) Source(#source)
+#source <= #CustomerInfoPanel
+Endroutine
+End_Com

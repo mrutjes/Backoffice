@@ -1,0 +1,279 @@
+* =======================================================
+* ============= © VSB International B.V. ================
+* =======================================================
+* Naam proces .....: PORB1
+* Naam functie ....: PORB110
+* Titel ...........: Inlezen aanvraag card 1
+* Doel ............: Vertalen XML naar Lansa velden +
+*                    aanroepen Inlezen aanvraag card 2
+* Creatiedatum/tijd: 02/11/05 11:11:05
+* Bedrijf .........: Sogeti Nederland B.V.
+* Programmeur .....: ONMSTEEN   Marcel Steenstra
+* LANSA release ...: 10.0
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ONMBWELI   Bart van Welie
+* Datum/Tijd ..: 14/11/08 08:14:44
+* Aanpassing ..: CR31002601 - Upgrade Lansa Integrator
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ONMBWELI   Bart van Welie
+* Datum/Tijd ..: 14/11/08 08:17:59
+* Aanpassing ..: CR31002754 - Eigen log bestand voor CMT
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ONMSTEEN   Marcel Steenstra
+* Datum/Tijd ..: 15/12/08 14:16:25
+* Aanpassing ..: CR31000727 - WEB8.4
+*                Extra velden in XML bericht
+*                (wijzigingen voor CR2601 tijdelijk
+*                verwijderd)
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ONMSTEEN   Marcel Steenstra
+* Datum/Tijd ..: 06/01/09 12:41:04
+* Aanpassing ..: CR31000727 - WEB8.4 - bevinding 4250
+*                Extra velden in list extra cards niet ok
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ONJBIJL    Jan van der Bijl
+* Datum/Tijd ..: 08/01/09 10:57:46
+* Aanpassing ..: WEB8.4 CR31001716 en CR31001739
+*                Extra velden in XML bericht
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ONAMAMMA   Arzu Mammadova
+* Datum/Tijd ..: 22/01/09 13:14:11
+* Aanpassing ..: CR31002601 - Upgrade Lansa Integrator
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ONJBIJL    Jan van der Bijl
+* Datum/Tijd ..: 23/03/09 10:12:02
+* Aanpassing ..: Clixicon CR31003156
+*                Extra velden in XML bericht
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODMSTEEN    Marcel Steenstra
+* Datum/Tijd ..: 14/04/10 12:10:41
+* Aanpassing ..: Rel104 CCD CR31004787
+*                Extra velden in XML bericht
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODJBIJL    Jan van der Bijl
+* Datum/Tijd ..: 19/05/10 15:10:46
+* Aanpassing ..: CR31004621: Exchange EX_RETCD, EX_MSGID,
+*                EX_MSGF en EX_REASON toegevoegd
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODJBOY   Yvonne de Boer
+* Datum/Tijd ..: 10/06/10 14:39:00
+* Aanpassing ..: CR31005060  Uitbreiden bericht met
+*                MembershipNumber (COBANR)
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODJBOY   Yvonne de Boer
+* Datum/Tijd ..: 22/07/10 09:35:00
+* Aanpassing ..: CR31004875  Uitbreiding bericht met
+*                Employee pasnummer (COBEPN) en V&D
+*                verzekering (COBVZK)
+*                CR31005208 Uitbreiding bericht met
+*                telefoonnummer werk (COBTLW)
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODSZWAGE Sjack Zwager
+* Datum/Tijd ..: 05/08/10 11:05:33
+* Aanpassing ..: CR31005163  Uitbreiding bericht met
+*                Kamer van Koophandelnummer (COBKKN)
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODJBOY Yvonne de Boer
+* Datum/Tijd ..: 11/08/10 11:05:33
+* Aanpassing ..: Om bevindingen in test en productie voor
+*                te zijn: KvK nr uit xml (A/50)wordt com-
+*                patibel gemaakt met COBKKN (P/10).
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODMSTEEN    Marcel Steenstra
+* Datum/Tijd ..: 11/11/10 15:50:38
+* Aanpassing ..: WEB10.6.1 CR31005310
+*                Extra velden verblijfsvergunning, eind
+*                datum dienstverband en werkgever woon-
+*                plaats in XML bericht
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODMSTEEN    Marcel Steenstra
+* Datum/Tijd ..: 08/12/10 16:04:26
+* Aanpassing ..: WEB10.6.1 CR31005310 Bev. 2214
+*                Veld Start date address toegevoegd
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODJBOY  Yvonne de Boer
+* Datum/Tijd ..: 13/09/11 14:18:26
+* Aanpassing ..: MUST CR31007091 toevoegen e-mailadres
+*                extrakaarthouder
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODMSTEEN    Marcel Steenstra
+* Datum/Tijd ..: 03/09/12 10:31:09
+* Aanpassing ..: MUST CR31008705
+*                Veld Annual bonus toegevoegd
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODSGREIJ    Sjoerd Greydanus
+* Datum/Tijd ..: 16/11/12 13:16:09
+* Aanpassing ..: MUST CR31008806
+*                Straat en woonplaats toegevoegd
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODSGREIJ    Sjoerd Greydanus
+* Datum/Tijd ..: 05/12/12 13:13:52
+* Aanpassing ..: MUST CR31008806
+*                Taalcode toegevoegd
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODSGREIJ    Sjoerd Greydanus
+* Datum/Tijd ..: 22/02/13 09:37:45
+* Aanpassing ..: SEPA CR31009430
+*                IBAN en BIC toegevoegd
+* =======================================================
+* Bedrijf .....: Sogeti Nederland B.V.
+* Auteur ......: ODAVELDH Ab Veldhuizen
+* Datum/Tijd ..: 27/09/13 09:15:00
+* Aanpassing ..: CR31008696   Titel, voornaam en straat-
+*                naam werkgever toegevoegd.
+* =======================================================
+
+* LET OP:
+* Alle velden die niet beginnen met JSM worden mee-
+* gegeven aan de intergrator functie's.
+* =======================================================
+Function Options(*DIRECT *DEFERWRITE *MLOPTIMIZE)
+Exchange Fields(#EX_FNCKEY) Option(*ALWAYS)
+* =======================================================
+* Tag: Definities
+* =======================================================
+Define Field(#JSM07) Type(*CHAR) Length(7)
+Define Field(#JSM08) Type(*CHAR) Length(8)
+Define Field(#JSM140) Type(*CHAR) Length(140)
+Define Field(#JSMP01) Type(*DEC) Length(1) Decimals(0)
+Define Field(#JSMP02) Type(*DEC) Length(2) Decimals(0)
+Define Field(#JSMP03) Type(*DEC) Length(3) Decimals(0)
+* =======================================================
+* Tag: Overrides
+* =======================================================
+
+* =======================================================
+* Tag: Condities
+* =======================================================
+
+* =======================================================
+* Tag: Groepen
+* =======================================================
+Group_By Name(#GR_PBSTAB) Fields(#PBSRQN #PBSRV1 #PBSRV2 #PBSRV3 #PBSRV4 #PBSRV5 #PBSBVW #PBSRVW)
+Group_By Name(#GR_LOG) Fields(#PBLMNR #PBSRQN #PBLERR #PBLMSF)
+Group_By Name(#JSMAANVR) Fields(#PVAIDN #COBCR1 #COBGWL #COBTTL #COBVRL #COBVVG #COBVNM #COBNAM #COBGSL #COBGDT #COBNAT #COBSNR #COBMAS #COBPSC #COBSTR #COBWPL #COBHSN #COBHSA #COBTLP #COBTLW #COBANR #COBTLM #COBEMA #COBREK #COBBAN #COBBIC #COBEMP #COBIBW #COBPRC #COBVBD #COBHUS #COBSEM #COBMNM #COBMVV #COBGPL #COBLOB #COBCFR #COBIDT #COBLNR #COBBMI #COBAPO #COBIPA #COBIID #COBMHC #COBALI #COBNLP #COBAIN #COBIKO #COBLNG #COBOVP #COBEPN #COBVZK #W_COBKKN #COBVBG #COBVED #COBEEM #COBDTAA #COBANB)
+* =======================================================
+* Tag: Working Lists en Browse Lists
+* =======================================================
+Def_List Name(#JSMEXTRA) Fields(#CBXVRL #CBXVVG #CBXNAM #CBXDTG #CBXGSL #CBXMAS #CBXCR1 #CBXSNR #CBXNAT #CBXMNM #CBXMVV #CBXIID #CBXEPN #CBXVZK #CBXVBG #CBXVED #CBXEMA) Type(*WORKING) Entrys(10)
+Def_List Name(#JSMADDSV) Fields(#IVZSGR #IVZINC #IVZAUT #IVZDAV #IVZTOC #IVZCVP #IVZDTS #IVPNAM #IVPGSL #IVPGDT) Type(*WORKING) Entrys(10)
+Def_List Name(#JSMCRDAS) Fields(#IVZSGR #IVZCIN) Type(*WORKING) Entrys(10)
+Def_List Name(#JSMCOMP) Fields(#COBWNA #COBWPO #EX_QASHN #EX_QASHE #COBWWS #COBWWP) Type(*WORKING) Entrys(1)
+Def_List Name(#JSMDUMMY) Fields(#FUNCTION) Type(*WORKING)
+* =======================================================
+* Tag: Main line: PORB110
+* =======================================================
+Execute Subroutine(INIT)
+
+* Bepaal alle variabelen m.b.v. opgehaalde XSL
+Execute Subroutine(CONV_XML) With_Parms(#PBSRV1 1)
+Add_Entry To_List(#JSMCOMP)
+Add_Entry To_List(#JSMADDSV)
+If Cond('#PBSRV2 *NE *BLANKS')
+Execute Subroutine(CONV_XML) With_Parms(#PBSRV2 2)
+Endif
+If Cond('#PBSRV3 *NE *BLANKS')
+Execute Subroutine(CONV_XML) With_Parms(#PBSRV3 3)
+Endif
+* Aanroepen juiste functie
+Execute Subroutine(FUNCTIE)
+* Aanmaken response bericht
+Execute Subroutine(CONV_VAR) With_Parms(#PBSRVW)
+* Standaard beëindiging programma
+Exchange Fields(#EX_RETCD #EX_MSGID #EX_MSGF #EX_REASON)
+Return
+* =======================================================
+* Initialisatie programma
+* =======================================================
+Subroutine Name(INIT)
+* Lees portal backend stuurtabel
+Fetch Fields(#GR_PBSTAB) From_File(PBSTAB) With_Key(#EX_PBSRQN) Io_Error(*NEXT) Val_Error(*NEXT)
+Endroutine
+* =======================================================
+* Omzetten XML naar Lansa variabelen
+* =======================================================
+Subroutine Name(CONV_XML) Parms((#JSM07 *RECEIVED) (#JSMP01 *RECEIVED))
+Change Field(#JSMCMD) To('''RECEIVE XSL(''')
+Case Of_Field(#JSMP01)
+When Value_Is('= 1')
+Change Field(#JSM140) To(''') SERVICE_LIST(CBXVRL,CBXVVG,CBXNAM,CBXDTG,CBXGSL,CBXMAS,CBXCR1,CBXSNR,CBXNAT,CBXMNM,CBXMVV,CBXIID,CBXEPN,CBXVZK,CBXVBG,CBXVED,CBXEMA)''')
+Use Builtin(TCONCAT) With_Args(#JSMCMD #JSM07 #JSM140) To_Get(#JSMCMD)
+Use Builtin(JSM_COMMAND) With_Args(#JSMCMD) To_Get(#JSMSTS #JSMMSG #JSMEXTRA)
+When Value_Is('= 2')
+Change Field(#JSM140) To(''') SERVICE_LIST(IVZSGR,IVZCIN)''')
+Use Builtin(TCONCAT) With_Args(#JSMCMD #JSM07 #JSM140) To_Get(#JSMCMD)
+Use Builtin(JSM_COMMAND) With_Args(#JSMCMD) To_Get(#JSMSTS #JSMMSG #JSMCRDAS)
+When Value_Is('= 3')
+Change Field(#JSM140) To(''') SERVICE_LIST(IVZSGR,IVZINC,IVZAUT,IVZDAV,IVZTOC,IVZCVP,IVZDTS,IVPNAM,IVPGSL,IVPGDT)''')
+Use Builtin(TCONCAT) With_Args(#JSMCMD #JSM07 #JSM140) To_Get(#JSMCMD)
+Use Builtin(JSM_COMMAND) With_Args(#JSMCMD) To_Get(#JSMSTS #JSMMSG #JSMADDSV)
+Endcase
+Endroutine
+* =======================================================
+* Omzetten Lansa variabelen naar XML
+* =======================================================
+Subroutine Name(CONV_VAR) Parms((#JSM07 *RECEIVED))
+Change Field(#EX_PBSRSN) To(#EX_PBSRQN)
+Use Builtin(SCANSTRING) With_Args(#EX_PBSRSN REQUEST) To_Get(#JSMP03)
+Change Field(#JSM08) To('''response''')
+Substring Field(#JSM08) Into_Field(#EX_PBSRSN #JSMP03)
+Change Field(#JSMCMD) To('SEND XSL(')
+Change Field(#JSM140) To(''') SERVICE_LIST(FUNCTION)''')
+Use Builtin(TCONCAT) With_Args(#JSMCMD #JSM07 #JSM140) To_Get(#JSMCMD)
+Use Builtin(JSM_COMMAND) With_Args(#JSMCMD) To_Get(#JSMSTS #JSMMSG #JSMDUMMY)
+Endroutine
+* =======================================================
+* Aanroepen juiste functie
+* =======================================================
+Subroutine Name(FUNCTIE)
+Exchange Fields(#JSMAANVR)
+* Aanroepen functie
+Call Process(*DIRECT) Function(PORB111) Pgm_Exch(*YES) If_Error(*NEXT) Pass_Lst(#JSMEXTRA #JSMADDSV #JSMCOMP #JSMCRDAS)
+If Cond('#EX_RETCD *EQ *ZERO')
+* Goedbericht
+Change Field(#EX_REASON) To(*BLANKS)
+Else
+* Foutbericht
+Use Builtin(GET_MESSAGE_DESC) With_Args(#EX_MSGID #EX_MSGF '*LIBL') To_Get(#EX_REASON)
+Endif
+* Response van aangeroepen functie opslaan in logbestand
+Execute Subroutine(LOG)
+Endroutine
+* =======================================================
+* Log
+* =======================================================
+Subroutine Name(LOG)
+Change Field(#PBSRQN) To(#EX_PBSRQN)
+Change Field(#PBLERR) To(#EX_MSGID)
+Change Field(#PBLMSF) To(#EX_MSGF)
+If Cond('#EX_APPL *EQ CMT')
+Insert Fields(#GR_LOG) To_File(CBLBST) Io_Error(*NEXT) Val_Error(*NEXT)
+Else
+Insert Fields(#GR_LOG) To_File(PBLBST) Io_Error(*NEXT) Val_Error(*NEXT)
+Endif
+If_Status Is(*OKAY)
+Commit
+Else
+Rollback
+Endif
+Endroutine
